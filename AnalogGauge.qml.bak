@@ -1,0 +1,121 @@
+import QtQuick 2.15
+
+Item {
+    id: root
+    property real value: 0
+    property real minValue: 0
+    property real maxValue: 100
+    property real warnValue: 0.8  // fraction of range (0.0-1.0)
+    property real dangerValue: 0.9
+    property alias gaugeColor: root._gaugeColor
+    property alias warnColor: root._warnColor
+    property alias dangerColor: root._dangerColor
+    property alias bgColor: root._bgColor
+    property alias tickColor: root._tickColor
+    property alias textColor: root._textColor
+
+    property color _gaugeColor: themeManager.gaugeColor
+    property color _warnColor: themeManager.warnColor
+    property color _dangerColor: themeManager.dangerColor
+    property color _bgColor: themeManager.bgCard
+    property color _tickColor: themeManager.tickColor
+    property color _textColor: themeManager.gaugeTextColor
+    property int majorTicks: 5
+    property int minorTicks: 4
+    property real startAngle: 135
+    property real endAngle: 405
+    property bool showValue: true
+    property bool showLabel: true
+    property string label: ""
+    property int fontSize: 14
+    property real thickness: 0.15  // fraction of radius
+    width: 200
+    height: 200
+    Canvas {
+        id: canvas
+        anchors.fill: parent
+        onPaint: {
+            var ctx = getContext("2d")
+            var cx = width / 2
+            var cy = height / 2
+            var radius = Math.min(width, height) / 2 - 10
+            var innerRadius = radius * (1 - thickness)
+            ctx.clearRect(0, 0, width, height)
+            // Background arc (track)
+            ctx.beginPath()
+            ctx.arc(cx, cy, radius, startAngle * Math.PI / 180, endAngle * Math.PI / 180)
+            ctx.arc(cx, cy, innerRadius, endAngle * Math.PI / 180, startAngle * Math.PI / 180, true)
+            ctx.closePath()
+            ctx.fillStyle = themeManager.bgCard
+            ctx.fill()
+            // Value arc
+            var range = maxValue - minValue
+            var fraction = Math.max(0, Math.min(1, (value - minValue) / range))
+            var currentAngle = startAngle + fraction * (endAngle - startAngle)
+            var valueColor = themeManager.gaugeColor
+            if (fraction >= dangerValue) valueColor = themeManager.dangerColor
+            else if (fraction >= warnValue) valueColor = themeManager.warnColor
+            if (fraction > 0) {
+                ctx.beginPath()
+                ctx.arc(cx, cy, radius, startAngle * Math.PI / 180, currentAngle * Math.PI / 180)
+                ctx.arc(cx, cy, innerRadius, currentAngle * Math.PI / 180, startAngle * Math.PI / 180, true)
+                ctx.closePath()
+                ctx.fillStyle = valueColor
+                ctx.fill()
+            }
+            // Tick marks
+            var tickRange = endAngle - startAngle
+            var totalTicks = majorTicks * minorTicks
+            for (var i = 0; i <= totalTicks; i++) {
+                var angle = startAngle + (i / totalTicks) * tickRange
+                var rad = angle * Math.PI / 180
+                var isMajor = i % minorTicks === 0
+                var tickLen = isMajor ? 8 : 4
+                var tickRadius = isMajor ? innerRadius - 2 : innerRadius - 1
+                var x1 = cx + tickRadius * Math.cos(rad)
+                var y1 = cy + tickRadius * Math.sin(rad)
+                var x2 = cx + (tickRadius - tickLen) * Math.cos(rad)
+                var y2 = cy + (tickRadius - tickLen) * Math.sin(rad)
+                ctx.beginPath()
+                ctx.moveTo(x1, y1)
+                ctx.lineTo(x2, y2)
+                ctx.strokeStyle = isMajor ? themeManager.gaugeTextColor : themeManager.tickColor
+                ctx.lineWidth = isMajor ? 2 : 1
+                ctx.stroke()
+                // Major tick labels
+                if (isMajor) {
+                    var labelRadius = tickRadius - 14
+                    var lx = cx + labelRadius * Math.cos(rad)
+                    var ly = cy + labelRadius * Math.sin(rad)
+                    ctx.fillStyle = themeManager.gaugeTextColor
+                    ctx.font = "bold " + (fontSize - 3) + "px sans-serif"
+                    ctx.textAlign = "center"
+                    ctx.textBaseline = "middle"
+                    ctx.fillText(Math.round(minValue + (i / totalTicks) * range), lx, ly)
+                }
+            }
+            // Center value display
+            if (showValue) {
+                ctx.fillStyle = valueColor
+                ctx.font = "bold " + fontSize + "px sans-serif"
+                ctx.textAlign = "center"
+                ctx.textBaseline = "middle"
+                ctx.fillText(Math.round(value), cx, cy)
+            }
+            // Label
+            if (showLabel && label !== "") {
+                ctx.fillStyle = themeManager.gaugeTextColor
+                ctx.font = (fontSize - 4) + "px sans-serif"
+                ctx.textAlign = "center"
+                ctx.textBaseline = "middle"
+                ctx.fillText(label, cx, cy + fontSize * 0.8)
+            }
+        }
+        Connections {
+            target: root
+            function onValueChanged() { canvas.requestPaint() }
+            function onMinValueChanged() { canvas.requestPaint() }
+            function onMaxValueChanged() { canvas.requestPaint() }
+        }
+    }
+}

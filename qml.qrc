@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>DashboardPage.qml</file>
+        <file>MediaPage.qml</file>
+        <file>BackupCamPage.qml</file>
+        <file>DashcamPage.qml</file>
+        <file>AnalogGauge.qml</file>
+        <file>SettingsPage.qml</file>
+        <file>CarPlayPage.qml</file>
+        <file>WirelessPage.qml</file>
+    </qresource>
+</RCC>

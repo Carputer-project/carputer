@@ -1,0 +1,692 @@
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+Item {
+    focus: true
+    property int fanSpeed: carControlManager ? carControlManager.fanSpeed : 0
+    property bool hvacOn: configManager.hvacEnabled
+    property bool acOn: configManager.acEnabled
+    property bool doorsLocked: carControlManager ? carControlManager.doorsLocked : false
+    property bool remoteStartActive: carControlManager ? carControlManager.remoteStartActive : false
+    property real temperature: configManager.targetTemp
+    property bool autoMode: configManager.autoMode
+    property bool recirculate: configManager.recirculate
+    Connections {
+        target: carControlManager
+        function onFanSpeedChanged() { fanSpeed = carControlManager.fanSpeed }
+        function onHvacEnabledChanged() { hvacOn = carControlManager.hvacEnabled }
+        function onAcEnabledChanged() { acOn = carControlManager.acEnabled }
+        function onDoorsLockedChanged() { doorsLocked = carControlManager.doorsLocked }
+        function onRemoteStartActiveChanged() { remoteStartActive = carControlManager.remoteStartActive }
+    }
+    onTemperatureChanged: configManager.targetTemp = temperature
+    Flickable {
+        anchors.fill: parent
+        contentHeight: mainColumn.implicitHeight + 40
+        clip: true
+        Column {
+            id: mainColumn
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: 10
+            spacing: 8
+            // ── Top row - time, system, quick actions ───────────────
+            Rectangle {
+                width: parent.width
+                height: 80
+                color: themeManager.bgCard
+                radius: 8
+                Row {
+                    anchors.fill: parent
+                    padding: 12
+                    spacing: 15
+                    Column {
+                        width: parent.width / 3 - 20
+                        Text {
+                            text: "TIME"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 11
+                        }
+                        Text {
+                            id: timeText
+                            text: new Date().toLocaleTimeString(Qt.locale("en_US"), "hh:mm:ss AP")
+                            color: themeManager.textPrimary
+                            font.pixelSize: 28
+                            font.bold: true
+                        }
+                        Text {
+                            text: new Date().toLocaleDateString(Qt.locale("en_US"), "dddd, MMMM d")
+                            color: themeManager.textSecondary
+                            font.pixelSize: 12
+                        }
+                    }
+                    Column {
+                        width: parent.width / 3 - 20
+                        Text {
+                            text: "SYSTEM"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 11
+                        }
+                        Text {
+                            text: "v" + appVersion
+                            color: themeManager.carBlue
+                            font.pixelSize: 20
+                            font.bold: true
+                        }
+                        Text {
+                            text: carControlManager && carControlManager.connected ? "All Systems OK" : "Check ESP32"
+                            color: carControlManager && carControlManager.connected ? themeManager.statusGreen : themeManager.statusRed
+                            font.pixelSize: 12
+                        }
+                    }
+                    Column {
+                        width: parent.width / 3 - 20
+                        Text {
+                            text: "QUICK ACTIONS"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 11
+                        }
+                        Row {
+                            spacing: 8
+                            Button {
+                                width: 55; height: 35
+                                text: "Media"
+                                font.pixelSize: 11
+                                onClicked: root.activePage = 2
+                            }
+                            Button {
+                                width: 55; height: 35
+                                text: "Rear"
+                                font.pixelSize: 11
+                                onClicked: root.activePage = 3
+                            }
+                            Button {
+                                width: 55; height: 35
+                                text: "DVR"
+                                font.pixelSize: 11
+                                onClicked: root.activePage = 4
+                            }
+                        }
+                    }
+                }
+            }
+            // ── Now Playing bar ────────────────────────────────────────
+            Rectangle {
+                width: parent.width
+                height: 130
+                color: themeManager.bgCard
+                radius: 8
+                clip: true
+                Column {
+                    anchors.fill: parent
+                    // Track info + transport controls
+                    Row {
+                        width: parent.width
+                        height: 80
+                        anchors.margins: 12
+                        padding: 12
+                        spacing: 12
+
+                        MouseArea {
+                            width: parent.width - 140
+                            height: parent.height
+                            onClicked: root.activePage = 2
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                spacing: 10
+
+                                // Artwork thumbnail
+                                Rectangle {
+                                    width: 54
+                                    height: 54
+                                    radius: 5
+                                    color: themeManager.bgDark
+                                    clip: true
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Image {
+                                        id: dashArtwork
+                                        anchors.fill: parent
+                                        source: mediaManager.artworkUrl.length > 0 ? mediaManager.artworkUrl : ""
+                                        fillMode: Image.PreserveAspectCrop
+                                        visible: status === Image.Ready
+                                        cache: false
+                                    }
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "♫"
+                                        font.pixelSize: 22
+                                        color: themeManager.textSecondary
+                                        visible: dashArtwork.status !== Image.Ready
+                                    }
+                                }
+
+                                // Text info
+                                Column {
+                                    width: parent.width - 64
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 3
+
+                                    Text {
+                                        text: "NOW PLAYING"
+                                        color: themeManager.textSecondary
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        text: mediaManager.currentTitle || mediaManager.currentTrack || "No track loaded"
+                                        color: themeManager.textPrimary
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        width: parent.width
+                                    }
+                                    Text {
+                                        text: mediaManager.currentArtist || ""
+                                        color: themeManager.carBlue
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                        width: parent.width
+                                        visible: text !== ""
+                                    }
+                                    Text {
+                                        text: formatTime(mediaManager.position) + " / " + formatTime(mediaManager.duration)
+                                        color: themeManager.textSecondary
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+                        Row {
+                            spacing: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            Rectangle {
+                                width: 40; height: 40
+                                radius: 6; color: themeManager.bgPanel
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "R"
+                                    font.pixelSize: 16
+                                    color: themeManager.textPrimary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: mediaManager.previous()
+                                }
+                            }
+                            Rectangle {
+                                width: 50; height: 50
+                                radius: 6; color: themeManager.bgPanel
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: mediaManager.playing ? "P" : "PLAY"
+                                    font.pixelSize: 16
+                                    color: themeManager.textPrimary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        if (mediaManager.playing) mediaManager.pause()
+                                        else mediaManager.play()
+                                    }
+                                }
+                            }
+                            Rectangle {
+                                width: 40; height: 40
+                                radius: 6; color: themeManager.bgPanel
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "N"
+                                    font.pixelSize: 16
+                                    color: themeManager.textPrimary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: mediaManager.next()
+                                }
+                            }
+                        }
+                    }
+                    // ── Spectrum strip ────────────────────────────────────
+                    Rectangle {
+                        width: parent.width
+                        height: 50
+                        color: themeManager.bgDark
+                        Row {
+                            anchors {
+                                fill: parent
+                                leftMargin: 8
+                                rightMargin: 8
+                                topMargin: 4
+                                bottomMargin: 4
+                            }
+                            spacing: 2
+                            Repeater {
+                                model: mediaManager.spectrumData.length > 0
+                                       ? mediaManager.spectrumData
+                                       : Array(32).fill(-80.0)
+                                Item {
+                                    width: (parent.width - 31 * 2) / 32
+                                    height: parent.height
+                                    Rectangle {
+                                        property real normalized: Math.max(0.0, (modelData + 80.0) / 80.0)
+                                        width: parent.width
+                                        height: Math.max(2, normalized * parent.height)
+                                        anchors.bottom: parent.bottom
+                                        radius: 2
+                                        color: normalized < 0.5
+                                            ? Qt.rgba(0, 0.66 + normalized * 0.68, 0.91, 1.0)
+                                            : Qt.rgba(0, 1.0, 0.91 - (normalized - 0.5) * 1.4, 1.0)
+                                        Behavior on height {
+                                            NumberAnimation { duration: 60; easing.type: Easing.OutQuart }
+                                        }
+                                        Behavior on color {
+                                            ColorAnimation { duration: 60 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // ── Gauges row ──────────────────────────────────────────────
+            Row {
+                spacing: 8
+                width: parent.width
+                height: 200
+                // Speedometer
+                Loader {
+                    width: (parent.width - 24) / 4
+                    height: parent.height
+                    sourceComponent: gaugeComponent
+                    onLoaded: {
+                        item.value = Qt.binding(function() { return sensorManager ? sensorManager.speed : 0 })
+                        item.label = "MPH"
+                        item.gaugeColor = themeManager.carBlue
+                        item.warnValue = 0.8
+                        item.dangerValue = 0.9
+                    }
+                }
+                // RPM Gauge
+                Loader {
+                    width: (parent.width - 24) / 4
+                    height: parent.height
+                    sourceComponent: gaugeComponent
+                    onLoaded: {
+                        item.value = Qt.binding(function() { return sensorManager ? sensorManager.rpm : 0 })
+                        item.minValue = 0
+                        item.maxValue = 8000
+                        item.label = "RPM"
+                        item.gaugeColor = (sensorManager && sensorManager.rpm > 6000) ? themeManager.statusRed : themeManager.carOrange
+                        item.warnValue = 0.75
+                        item.dangerValue = 0.9
+                    }
+                }
+                // Fuel Gauge
+                Loader {
+                    width: (parent.width - 24) / 4
+                    height: parent.height
+                    sourceComponent: gaugeComponent
+                    onLoaded: {
+                        item.value = Qt.binding(function() { return sensorManager ? sensorManager.fuelLevel : 0 })
+                        item.minValue = 0
+                        item.maxValue = 100
+                        item.label = "FUEL"
+                        item.gaugeColor = (sensorManager && sensorManager.fuelLevel > 25) ? themeManager.statusGreen : themeManager.statusRed
+                        item.warnValue = 0.25
+                        item.dangerValue = 0.1
+                    }
+                }
+                // Coolant Temp Gauge
+                Loader {
+                    width: (parent.width - 24) / 4
+                    height: parent.height
+                    sourceComponent: gaugeComponent
+                    onLoaded: {
+                        item.value = Qt.binding(function() { return sensorManager ? sensorManager.coolantTemp : 0 })
+                        item.minValue = 100
+                        item.maxValue = 300
+                        item.label = "TEMP"
+                        item.gaugeColor = (sensorManager && sensorManager.coolantTemp > 210) ? themeManager.statusRed : themeManager.statusOrange
+                        item.warnValue = 0.55
+                        item.dangerValue = 0.7
+                    }
+                }
+            }
+            // ── Bottom row - 4 cards (Vehicle, Fuel, Controller) ───
+            Row {
+                spacing: 8
+                width: parent.width
+                height: 75
+                // Vehicle Card
+                Rectangle {
+                    width: Math.floor((parent.width - 24) / 4)
+                    height: parent.height
+                    color: themeManager.bgCard
+                    radius: 8
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+                        Text {
+                            text: "VEHICLE"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 10
+                        }
+                        Text {
+                            text: doorsLocked ? "LOCKED" : "UNLOCKED"
+                            color: doorsLocked ? themeManager.carOrange : themeManager.statusGreen
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+                        Text {
+                            text: remoteStartActive ? "Engine On" : "Engine Off"
+                            color: remoteStartActive ? themeManager.carOrange : themeManager.textSecondary
+                            font.pixelSize: 9
+                        }
+                    }
+                }
+                // Fuel Card
+                Rectangle {
+                    width: Math.floor((parent.width - 24) / 4)
+                    height: parent.height
+                    color: themeManager.bgCard
+                    radius: 8
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+                        Text {
+                            text: "FUEL"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 10
+                        }
+                        Text {
+                            text: sensorManager ? sensorManager.fuelLevel + "%" : "--%"
+                            color: sensorManager && sensorManager.fuelLevel > 25 ? themeManager.statusGreen : themeManager.statusRed
+                            font.pixelSize: 20
+                            font.bold: true
+                        }
+                        Text {
+                            text: sensorManager && sensorManager.fuelLevel > 0 ? "Level OK" : "No data"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 9
+                        }
+                    }
+                }
+                // Controller Card
+                Rectangle {
+                    width: Math.floor((parent.width - 24) / 4)
+                    height: parent.height
+                    color: themeManager.bgCard
+                    radius: 8
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+                        Text {
+                            text: "CONTROLLER"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 10
+                        }
+                        Text {
+                            text: carControlManager && carControlManager.connected ? "CONNECTED" : "OFFLINE"
+                            color: carControlManager && carControlManager.connected ? themeManager.statusGreen : themeManager.statusRed
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+                        Text {
+                            text: carControlManager && carControlManager.connected ? "ESP32 OK" : "Check Connection"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 9
+                        }
+                    }
+                }
+            }
+            // ── Divider ──────────────────────────────────────────────────
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: themeManager.bgPanel
+            }
+            // ── FULL CLIMATE CONTROLS ────────────────────────────────
+            Text {
+                text: "CLIMATE CONTROLS"
+                color: themeManager.carBlue
+                font.pixelSize: 18
+                font.bold: true
+            }
+            // HVAC Power Toggle
+            Row {
+                spacing: 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                Button {
+                    width: 180
+                    height: 50
+                    text: hvacOn ? "HVAC ON" : "HVAC OFF"
+                    palette.button: hvacOn ? themeManager.carBlue : themeManager.bgCard
+                    font.bold: true
+                    onClicked: {
+                        hvacOn = !hvacOn
+                        carControlManager.setHvacEnabled(hvacOn)
+                    }
+                }
+            }
+            // Temperature control
+            Rectangle {
+                width: parent.width
+                height: 100
+                color: themeManager.bgCard
+                radius: 8
+                Row {
+                    anchors.fill: parent
+                    padding: 20
+                    spacing: 40
+                    Column {
+                        Text {
+                            text: "CURRENT"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 14
+                        }
+                        Text {
+                            text: temperature.toFixed(0) + "°F"
+                            color: themeManager.textPrimary
+                            font.pixelSize: 48
+                            font.bold: true
+                        }
+                    }
+                    Column {
+                        Text {
+                            text: "TARGET"
+                            color: themeManager.textSecondary
+                            font.pixelSize: 14
+                        }
+                        Row {
+                            spacing: 10
+                            Button {
+                                width: 40; height: 40
+                                text: "-"
+                                font.pixelSize: 12
+                                onClicked: {
+                                    if (hvacOn && temperature > 60) {
+                                        temperature--
+                                        configManager.targetTemp = temperature
+                                    }
+                                }
+                            }
+                            Button {
+                                width: 40; height: 40
+                                text: "+"
+                                font.pixelSize: 12
+                                onClicked: {
+                                    if (hvacOn && temperature < 85) {
+                                        temperature++
+                                        configManager.targetTemp = temperature
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Text {
+                text: "FAN SPEED"
+                color: themeManager.textSecondary
+                font.pixelSize: 14
+            }
+            Row {
+                spacing: 10
+                anchors.horizontalCenter: parent.horizontalCenter
+                Repeater {
+                    model: 5
+                    delegate: Rectangle {
+                        width: 50; height: 50
+                        color: fanSpeed > index ? themeManager.carBlue : themeManager.bgCard
+                        radius: 8
+                        Text {
+                            anchors.centerIn: parent
+                            text: index + 1
+                            color: fanSpeed > index ? "#000000" : themeManager.textPrimary
+                            font.pixelSize: 20
+                            font.bold: true
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                fanSpeed = index + 1
+                                carControlManager.setFanSpeed(fanSpeed)
+                            }
+                        }
+                    }
+                }
+            }
+            Row {
+                spacing: 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                Button {
+                    width: 120; height: 60
+                    text: autoMode ? "AUTO" : "MANUAL"
+                    palette.button: autoMode ? themeManager.carBlue : themeManager.bgCard
+                    onClicked: {
+                        autoMode = !autoMode
+                        configManager.autoMode = autoMode
+                    }
+                }
+                Button {
+                    width: 120; height: 60
+                    text: acOn ? "A/C ON" : "A/C OFF"
+                    palette.button: acOn ? themeManager.carBlue : themeManager.bgCard
+                    onClicked: {
+                        acOn = !acOn
+                        carControlManager.setAcEnabled(acOn)
+                        configManager.acEnabled = acOn
+                    }
+                }
+                Button {
+                    width: 120; height: 60
+                    text: recirculate ? "RECIRC" : "FRESH"
+                    palette.button: recirculate ? themeManager.carBlue : themeManager.bgCard
+                    onClicked: {
+                        recirculate = !recirculate
+                        configManager.recirculate = recirculate
+                    }
+                }
+            }
+            Text {
+                text: "AIRFLOW MODE"
+                color: themeManager.textSecondary
+                font.pixelSize: 14
+            }
+            Row {
+                spacing: 10
+                anchors.horizontalCenter: parent.horizontalCenter
+                Button { width: 80; height: 50; text: "FACE" }
+                Button { width: 80; height: 50; text: "FEET" }
+                Button { width: 80; height: 50; text: "DEFROST" }
+                Button { width: 80; height: 50; text: "FEET+DEF" }
+            }
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: themeManager.bgPanel
+            }
+            Text {
+                text: "VEHICLE CONTROLS"
+                color: themeManager.textSecondary
+                font.pixelSize: 14
+            }
+            Row {
+                spacing: 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                Button {
+                    width: 120; height: 60
+                    text: doorsLocked ? "UNLOCK" : "LOCK"
+                    palette.button: doorsLocked ? themeManager.carOrange : themeManager.bgCard
+                    onClicked: {
+                        if (doorsLocked) carControlManager.unlockDoors()
+                        else carControlManager.lockDoors()
+                    }
+                }
+                Button {
+                    width: 120; height: 60
+                    text: "WIN UP"
+                    onClicked: carControlManager.windowsUp()
+                }
+                Button {
+                    width: 120; height: 60
+                    text: "WIN DOWN"
+                    onClicked: carControlManager.windowsDown()
+                }
+            }
+            Row {
+                spacing: 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                Button {
+                    width: 180; height: 70
+                    text: remoteStartActive ? "STOP ENGINE" : "REMOTE START"
+                    palette.button: remoteStartActive ? themeManager.carOrange : themeManager.carBlue
+                    font.pixelSize: 16
+                    font.bold: true
+                    onClicked: {
+                        if (remoteStartActive) carControlManager.stopRemote()
+                        else carControlManager.startRemote()
+                    }
+                }
+            }
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: themeManager.bgPanel
+            }
+        }
+    }
+    Component {
+        id: gaugeComponent
+        AnalogGauge {
+            minValue: 0
+            maxValue: 120
+            fontSize: 16
+            bgColor: themeManager.bgCard
+            tickColor: "#666666"
+            textColor: themeManager.textSecondary
+            startAngle: 135
+            endAngle: 405
+        }
+    }
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            timeText.text = new Date().toLocaleTimeString(Qt.locale("en_US"), "hh:mm:ss AP")
+        }
+    }
+    function formatTime(ms) {
+        if (!ms || ms <= 0) return "0:00"
+        var seconds = Math.floor(ms / 1000)
+        var minutes = Math.floor(seconds / 60)
+        seconds = seconds % 60
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
+    }
+}
