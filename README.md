@@ -133,7 +133,7 @@ systemctl restart carputer
 
 Settings are stored via QSettings at:
 ```
-~/.config/openipc/godseye.ini
+~/.config
 ```
 
 Key settings include video port, audio sink, theme, accent colour, DVR directory, climate defaults, and serial port assignments for the ESP32 modules.
