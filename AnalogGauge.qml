@@ -2,177 +2,308 @@ import QtQuick 2.15
 
 Item {
     id: root
-    property real value: 0
-    property real minValue: 0
-    property real maxValue: 100
-    property real warnValue: 0.8
-    property real dangerValue: 0.9
-    property alias gaugeColor: root._gaugeColor
-    property alias warnColor: root._warnColor
-    property alias dangerColor: root._dangerColor
-    property alias bgColor: root._bgColor
-    property alias tickColor: root._tickColor
-    property alias textColor: root._textColor
-    property alias needleColor: root._needleColor
-    property color _gaugeColor: themeManager.gaugeColor
-    property color _warnColor: themeManager.warnColor
-    property color _dangerColor: themeManager.dangerColor
-    property color _bgColor: themeManager.bgCard
-    property color _tickColor: themeManager.tickColor
-    property color _textColor: themeManager.gaugeTextColor
-    property color _needleColor: themeManager.needleColor
-    property int majorTicks: 5
-    property int minorTicks: 4
-    property real startAngle: 135
-    property real endAngle: 405
-    property bool showValue: true
-    property bool showLabel: true
-    property bool showNeedle: true
-    property string label: ""
-    property int fontSize: 14
-    property real thickness: 0.15
-    property real smoothDuration: 400
-    width: 200
+
+    // ── Value & Range ──────────────────────────────────────────────────
+    property real value:      0
+    property real minValue:   0
+    property real maxValue:   100
+
+    // ── Zone thresholds (0.0 – 1.0 fractions of range) ────────────────
+    property real warnValue:     0.75
+    property real dangerValue:   0.90
+    property real redlineStart:  0.85   // permanent redline marking (always drawn)
+
+    // ── Arc geometry ───────────────────────────────────────────────────
+    property real startAngle:  135
+    property real endAngle:    405
+    property real thickness:   0.13
+
+    // ── Labels ─────────────────────────────────────────────────────────
+    property string label:      ""
+    property string unitLabel:  ""
+    property bool   showValue:  true
+    property bool   showLabel:  true
+    property bool   showNeedle: true
+    property int    fontSize:   14
+    property int    majorTicks: 5
+    property int    minorTicks: 4
+
+    // ── Animation ──────────────────────────────────────────────────────
+    property real smoothDuration: 350
+
+    // ── Colors ─────────────────────────────────────────────────────────
+    property color gaugeColor:   themeManager.gaugeColor
+    property color warnColor:    themeManager.warnColor
+    property color dangerColor:  themeManager.dangerColor
+    property color needleColor:  themeManager.needleColor
+    property color tickColor:    themeManager.tickColor
+    property color textColor:    themeManager.gaugeTextColor
+    property color bgColor:      themeManager.bgCard
+
+    width:  200
     height: 200
 
-    property real _smoothValue: value
-    Behavior on _smoothValue {
-        NumberAnimation { duration: root.smoothDuration; easing.type: Easing.OutCubic }
-    }
-    onValueChanged: _smoothValue = value
+    onValueChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
         anchors.fill: parent
+
         onPaint: {
             var ctx = getContext("2d")
-            var cx = width / 2
-            var cy = height / 2
-            var radius = Math.min(width, height) / 2 - 10
-            var innerRadius = radius * (1 - thickness)
             ctx.clearRect(0, 0, width, height)
 
-            var range = maxValue - minValue
-            var fraction = range > 0 ? Math.max(0, Math.min(1, (_smoothValue - minValue) / range)) : 0
-            var currentAngle = startAngle + fraction * (endAngle - startAngle)
+            var cx      = width  / 2
+            var cy      = height / 2
+            var radius  = Math.min(width, height) / 2 - 6
+            var innerR  = radius * (1.0 - thickness)
+            var labelR  = innerR - 18
 
+            var range   = maxValue - minValue
+            var frac    = range > 0
+                          ? Math.max(0, Math.min(1, (root.value - minValue) / range))
+                          : 0
+
+            var sa      = startAngle * Math.PI / 180
+            var ea      = endAngle   * Math.PI / 180
+            var arcSpan = endAngle - startAngle
+
+            // 1. Outer bezel
             ctx.beginPath()
-            ctx.arc(cx, cy, radius, startAngle * Math.PI / 180, endAngle * Math.PI / 180)
-            ctx.arc(cx, cy, innerRadius, endAngle * Math.PI / 180, startAngle * Math.PI / 180, true)
-            ctx.closePath()
-            ctx.fillStyle = bgColor
+            ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2)
+            var bezel = ctx.createRadialGradient(cx, cy, radius - 2, cx, cy, radius + 5)
+            bezel.addColorStop(0, "#252530")
+            bezel.addColorStop(1, "#050508")
+            ctx.fillStyle = bezel
             ctx.fill()
 
-            if (fraction > 0) {
-                var warnAngle = startAngle + warnValue * (endAngle - startAngle)
-                var dangerAngle = startAngle + dangerValue * (endAngle - startAngle)
-                var safeEnd = Math.min(currentAngle, warnAngle)
-                if (safeEnd > startAngle) {
-                    ctx.beginPath()
-                    ctx.arc(cx, cy, radius, startAngle * Math.PI / 180, safeEnd * Math.PI / 180)
-                    ctx.arc(cx, cy, innerRadius, safeEnd * Math.PI / 180, startAngle * Math.PI / 180, true)
-                    ctx.closePath()
-                    ctx.fillStyle = gaugeColor
-                    ctx.fill()
-                }
-                if (currentAngle > warnAngle) {
-                    var warnEnd = Math.min(currentAngle, dangerAngle)
-                    ctx.beginPath()
-                    ctx.arc(cx, cy, radius, warnAngle * Math.PI / 180, warnEnd * Math.PI / 180)
-                    ctx.arc(cx, cy, innerRadius, warnEnd * Math.PI / 180, warnAngle * Math.PI / 180, true)
-                    ctx.closePath()
-                    ctx.fillStyle = warnColor
-                    ctx.fill()
-                }
-                if (currentAngle > dangerAngle) {
-                    ctx.beginPath()
-                    ctx.arc(cx, cy, radius, dangerAngle * Math.PI / 180, currentAngle * Math.PI / 180)
-                    ctx.arc(cx, cy, innerRadius, currentAngle * Math.PI / 180, dangerAngle * Math.PI / 180, true)
-                    ctx.closePath()
-                    ctx.fillStyle = dangerColor
-                    ctx.fill()
-                }
-            }
+            // 2. Dark background circle
+            ctx.beginPath()
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+            var bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
+            bg.addColorStop(0,    "#1e1e28")
+            bg.addColorStop(0.65, "#131318")
+            bg.addColorStop(1,    "#080810")
+            ctx.fillStyle = bg
+            ctx.fill()
 
-            var tickRange = endAngle - startAngle
-            var totalTicks = majorTicks * minorTicks
-            for (var i = 0; i <= totalTicks; i++) {
-                var angle = startAngle + (i / totalTicks) * tickRange
-                var rad = angle * Math.PI / 180
-                var isMajor = i % minorTicks === 0
-                var tickLen = isMajor ? 8 : 4
-                var tickRadius = isMajor ? innerRadius - 2 : innerRadius - 1
-                ctx.beginPath()
-                ctx.moveTo(cx + tickRadius * Math.cos(rad), cy + tickRadius * Math.sin(rad))
-                ctx.lineTo(cx + (tickRadius - tickLen) * Math.cos(rad), cy + (tickRadius - tickLen) * Math.sin(rad))
-                ctx.strokeStyle = isMajor ? textColor : tickColor
-                ctx.lineWidth = isMajor ? 2 : 1
-                ctx.stroke()
-                if (isMajor) {
-                    var lr = tickRadius - 14
-                    ctx.fillStyle = textColor
-                    ctx.font = "bold " + (fontSize - 3) + "px sans-serif"
-                    ctx.textAlign = "center"
-                    ctx.textBaseline = "middle"
-                    ctx.fillText(Math.round(minValue + (i / totalTicks) * range), cx + lr * Math.cos(rad), cy + lr * Math.sin(rad))
-                }
-            }
+            // 3. Full arc track baseline
+            ctx.beginPath()
+            ctx.arc(cx, cy, radius,  sa, ea)
+            ctx.arc(cx, cy, innerR,  ea, sa, true)
+            ctx.closePath()
+            ctx.fillStyle = "#18181f"
+            ctx.fill()
 
-            if (showNeedle && fraction >= 0) {
-                var needleAngleRad = (startAngle + fraction * (endAngle - startAngle)) * Math.PI / 180
-                var needleLength = radius - 12
-                var needleBase = 10
-                var needleWidth = 3
-                ctx.save()
-                ctx.translate(cx, cy)
-                ctx.rotate(needleAngleRad)
-                ctx.shadowColor = needleColor
-                ctx.shadowBlur = 8
+            // 4. Permanent redline zone
+            if (redlineStart < 1.0) {
+                var redA = (startAngle + redlineStart * arcSpan) * Math.PI / 180
                 ctx.beginPath()
-                ctx.moveTo(0, -needleLength)
-                ctx.lineTo(-needleWidth, needleBase)
-                ctx.lineTo(0, needleBase - 4)
-                ctx.lineTo(needleWidth, needleBase)
+                ctx.arc(cx, cy, radius, redA, ea)
+                ctx.arc(cx, cy, innerR, ea, redA, true)
                 ctx.closePath()
-                ctx.fillStyle = needleColor
+                ctx.fillStyle = "#3d0a0a"
                 ctx.fill()
-                ctx.shadowBlur = 0
+                // bright edge stripe
                 ctx.beginPath()
-                ctx.arc(0, 0, 5, 0, Math.PI * 2)
-                ctx.fillStyle = bgColor
+                ctx.arc(cx, cy, radius,     redA - 0.008, ea + 0.008)
+                ctx.arc(cx, cy, radius - 3, ea + 0.008, redA - 0.008, true)
+                ctx.closePath()
+                ctx.fillStyle = "#dd1111"
                 ctx.fill()
-                ctx.strokeStyle = needleColor
-                ctx.lineWidth = 2
-                ctx.stroke()
+            }
+
+            // 5. Active arc with glow
+            if (frac > 0) {
+                var warnA   = (startAngle + warnValue   * arcSpan) * Math.PI / 180
+                var dangerA = (startAngle + dangerValue  * arcSpan) * Math.PI / 180
+                var curA    = (startAngle + frac         * arcSpan) * Math.PI / 180
+
+                ctx.save()
+                ctx.shadowBlur = 16
+
+                // Green
+                var safeEnd = Math.min(curA, warnA)
+                if (safeEnd > sa) {
+                    ctx.shadowColor = gaugeColor.toString()
+                    ctx.beginPath()
+                    ctx.arc(cx, cy, radius, sa, safeEnd)
+                    ctx.arc(cx, cy, innerR, safeEnd, sa, true)
+                    ctx.closePath()
+                    ctx.fillStyle = gaugeColor.toString()
+                    ctx.fill()
+                }
+                // Yellow
+                if (curA > warnA) {
+                    var wEnd = Math.min(curA, dangerA)
+                    ctx.shadowColor = warnColor.toString()
+                    ctx.beginPath()
+                    ctx.arc(cx, cy, radius, warnA, wEnd)
+                    ctx.arc(cx, cy, innerR, wEnd, warnA, true)
+                    ctx.closePath()
+                    ctx.fillStyle = warnColor.toString()
+                    ctx.fill()
+                }
+                // Red
+                if (curA > dangerA) {
+                    ctx.shadowColor = dangerColor.toString()
+                    ctx.beginPath()
+                    ctx.arc(cx, cy, radius, dangerA, curA)
+                    ctx.arc(cx, cy, innerR, curA, dangerA, true)
+                    ctx.closePath()
+                    ctx.fillStyle = dangerColor.toString()
+                    ctx.fill()
+                }
                 ctx.restore()
             }
 
-            if (showValue) {
-                var vColor = fraction >= dangerValue ? dangerColor : (fraction >= warnValue ? warnColor : gaugeColor)
-                ctx.fillStyle = vColor
-                ctx.font = "bold " + fontSize + "px sans-serif"
-                ctx.textAlign = "center"
-                ctx.textBaseline = "middle"
-                ctx.fillText(Math.round(value), cx, cy - (showLabel && label !== "" ? fontSize * 0.4 : 0))
+            // 6. Tick marks & labels
+            var totalTicks = majorTicks * minorTicks
+            for (var i = 0; i <= totalTicks; i++) {
+                var tf     = i / totalTicks
+                var tAngle = startAngle + tf * arcSpan
+                var tRad   = tAngle * Math.PI / 180
+                var isMaj  = (i % minorTicks === 0)
+                var outerT = innerR - 1
+                var innerT = isMaj ? innerR - 16 : innerR - 8
+                var lw     = isMaj ? 2.5 : 1.2
+
+                var tc = tf >= dangerValue  ? dangerColor.toString()
+                       : tf >= warnValue    ? warnColor.toString()
+                       : tickColor.toString()
+
+                ctx.beginPath()
+                ctx.moveTo(cx + outerT * Math.cos(tRad), cy + outerT * Math.sin(tRad))
+                ctx.lineTo(cx + innerT * Math.cos(tRad), cy + innerT * Math.sin(tRad))
+                ctx.strokeStyle = tc
+                ctx.lineWidth   = lw
+                ctx.stroke()
+
+                if (isMaj) {
+                    var lr   = labelR - 2
+                    var tVal = Math.round(minValue + tf * range)
+                    var tStr = (maxValue >= 1000 && tVal >= 1000)
+                               ? (tVal / 1000).toFixed(0)
+                               : tVal.toString()
+                    ctx.fillStyle    = tf >= dangerValue ? dangerColor.toString() : textColor.toString()
+                    ctx.font         = "bold " + (fontSize - 3) + "px sans-serif"
+                    ctx.textAlign    = "center"
+                    ctx.textBaseline = "middle"
+                    ctx.fillText(tStr, cx + lr * Math.cos(tRad), cy + lr * Math.sin(tRad))
+                }
             }
 
-            if (showLabel && label !== "") {
-                ctx.fillStyle = textColor
-                ctx.font = (fontSize - 4) + "px sans-serif"
-                ctx.textAlign = "center"
+            // 7. Center hub
+            ctx.beginPath()
+            ctx.arc(cx, cy, innerR * 0.25, 0, Math.PI * 2)
+            var hub = ctx.createRadialGradient(cx, cy - 1, 0, cx, cy, innerR * 0.25)
+            hub.addColorStop(0, "#383848")
+            hub.addColorStop(1, "#0c0c18")
+            ctx.fillStyle = hub
+            ctx.fill()
+            ctx.strokeStyle = "#2a2a3a"
+            ctx.lineWidth   = 1.5
+            ctx.stroke()
+
+            // 8. Needle
+            if (showNeedle) {
+                var nAngle   = (startAngle + frac * arcSpan) * Math.PI / 180
+                var nLen     = innerR - 4
+                var nTail    = innerR * 0.20
+                var nW       = 2.5
+
+                var nColor   = frac >= dangerValue ? dangerColor.toString()
+                             : frac >= warnValue   ? warnColor.toString()
+                             : needleColor.toString()
+
+                ctx.save()
+                ctx.translate(cx, cy)
+                ctx.rotate(nAngle)
+
+                ctx.shadowColor = nColor
+                ctx.shadowBlur  = 12
+
+                var nGrad = ctx.createLinearGradient(0, -nLen, 0, nTail)
+                nGrad.addColorStop(0,    "#ffffff")
+                nGrad.addColorStop(0.12, nColor)
+                nGrad.addColorStop(1,    "#1a1a28")
+
+                ctx.beginPath()
+                ctx.moveTo(0, -nLen)
+                ctx.lineTo(-nW, 0)
+                ctx.lineTo(-nW * 0.5, nTail)
+                ctx.lineTo( nW * 0.5, nTail)
+                ctx.lineTo( nW, 0)
+                ctx.closePath()
+                ctx.fillStyle = nGrad
+                ctx.fill()
+
+                ctx.shadowBlur = 0
+
+                // Pivot cap
+                ctx.beginPath()
+                ctx.arc(0, 0, nW + 3, 0, Math.PI * 2)
+                var cap = ctx.createRadialGradient(0, -1.5, 0, 0, 0, nW + 3)
+                cap.addColorStop(0, "#505060")
+                cap.addColorStop(1, "#0e0e1c")
+                ctx.fillStyle = cap
+                ctx.fill()
+                ctx.strokeStyle = "#404050"
+                ctx.lineWidth   = 1
+                ctx.stroke()
+
+                ctx.restore()
+            }
+
+            // 9. Value display
+            if (showValue) {
+                var vColor   = frac >= dangerValue ? dangerColor.toString()
+                             : frac >= warnValue   ? warnColor.toString()
+                             : gaugeColor.toString()
+
+                var hasUnit  = unitLabel !== ""
+                var valY     = cy + (hasUnit ? -(fontSize * 0.7) : 0)
+
+                ctx.save()
+                ctx.shadowColor = vColor
+                ctx.shadowBlur  = 8
+                ctx.fillStyle    = vColor
+                ctx.font         = "bold " + (fontSize + 6) + "px sans-serif"
+                ctx.textAlign    = "center"
                 ctx.textBaseline = "middle"
-                ctx.fillText(label, cx, cy + fontSize * 0.8)
+                ctx.fillText(Math.round(root.value), cx, valY)
+                ctx.restore()
+
+                if (hasUnit) {
+                    ctx.fillStyle    = textColor.toString()
+                    ctx.font         = (fontSize - 1) + "px sans-serif"
+                    ctx.textAlign    = "center"
+                    ctx.textBaseline = "middle"
+                    ctx.fillText(unitLabel, cx, valY + fontSize + 4)
+                }
+            }
+
+            // 10. Gauge name
+            if (showLabel && label !== "") {
+                ctx.fillStyle    = textColor.toString()
+                ctx.font         = "bold " + (fontSize - 2) + "px sans-serif"
+                ctx.textAlign    = "center"
+                ctx.textBaseline = "middle"
+                ctx.fillText(label, cx, cy + radius * 0.60)
             }
         }
+
         Connections {
             target: root
-            function on_SmoothValueChanged() { canvas.requestPaint() }
-            function onMinValueChanged() { canvas.requestPaint() }
-            function onMaxValueChanged() { canvas.requestPaint() }
-            function onWarnValueChanged() { canvas.requestPaint() }
-            function onDangerValueChanged() { canvas.requestPaint() }
-            function onStartAngleChanged() { canvas.requestPaint() }
-            function onEndAngleChanged() { canvas.requestPaint() }
+            function onMinValueChanged()       { canvas.requestPaint() }
+            function onMaxValueChanged()       { canvas.requestPaint() }
+            function onWarnValueChanged()      { canvas.requestPaint() }
+            function onDangerValueChanged()    { canvas.requestPaint() }
+            function onRedlineStartChanged()   { canvas.requestPaint() }
+            function onStartAngleChanged()     { canvas.requestPaint() }
+            function onEndAngleChanged()       { canvas.requestPaint() }
+            function onUnitLabelChanged()      { canvas.requestPaint() }
+            function onLabelChanged()          { canvas.requestPaint() }
         }
     }
 }

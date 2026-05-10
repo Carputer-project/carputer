@@ -16,6 +16,8 @@ class SensorManager : public QObject
     // Vehicle dynamics
     Q_PROPERTY(int speed READ speed NOTIFY speedChanged)
     Q_PROPERTY(int rpm READ rpm NOTIFY rpmChanged)
+    Q_PROPERTY(int throttle READ throttle NOTIFY throttleChanged)
+    Q_PROPERTY(int map READ map NOTIFY mapChanged)
 
     // Temperature sensors (°F)
     Q_PROPERTY(int coolantTemp READ coolantTemp NOTIFY coolantTempChanged)
@@ -46,6 +48,8 @@ public:
 
     int speed() const { return m_speed; }
     int rpm() const { return m_rpm; }
+    int throttle() const { return m_throttle; }
+    int map() const { return m_map; }
     int coolantTemp() const { return m_coolantTemp; }
     int oilTemp() const { return m_oilTemp; }
     int ambientTemp() const { return m_ambientTemp; }
@@ -71,6 +75,8 @@ signals:
     void statusTextChanged();
     void speedChanged();
     void rpmChanged();
+    void throttleChanged();
+    void mapChanged();
     void coolantTempChanged();
     void oilTempChanged();
     void ambientTempChanged();
@@ -102,6 +108,8 @@ private:
 
     int m_speed = 0;
     int m_rpm = 0;
+    int m_throttle = 0;
+    int m_map = 0;
     int m_coolantTemp = 0;
     int m_oilTemp = 0;
     int m_ambientTemp = 0;

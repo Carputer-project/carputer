@@ -96,21 +96,25 @@ void InternalWiFiManager::disconnectNetwork()
 void InternalWiFiManager::forgetNetwork(const QString &ssid)
 {
     Q_UNUSED(ssid);
-    QProcess proc;
-    proc.setProgram("wpa_cli");
-    proc.setArguments({"-i", m_interface, "remove_network", "0"});
-    proc.start();
-    proc.waitForFinished(3000);
-    setStatusText("Network forgotten");
+    QProcess *proc = new QProcess(this);
+    proc->setProgram("wpa_cli");
+    proc->setArguments({"-i", m_interface, "remove_network", "0"});
+    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, proc](int, QProcess::ExitStatus) {
+        setStatusText("Network forgotten");
+        proc->deleteLater();
+    });
+    proc->start();
 }
 
 void InternalWiFiManager::onScanFinished()
 {
+    static const QRegularExpression ssidRx("SSID: (.+)");
+    static const QRegularExpression signalRx("signal: (-?\\d+) dBm");
+
     QString output = m_scanProcess.readAllStandardOutput();
     QStringList lines = output.split("\n");
     QStringList networks;
-    QRegularExpression ssidRx("SSID: (.+)");
-    QRegularExpression signalRx("signal: (-?\\d+) dBm");
 
     for (const QString &line : lines) {
         QRegularExpressionMatch ssidMatch = ssidRx.match(line);
@@ -168,14 +172,16 @@ void InternalWiFiManager::checkConnectionStatus()
     setConnected(connected);
 
     if (connected) {
+        static const QRegularExpression ssidRx("SSID: (.+)");
+        static const QRegularExpression signalRx("signal: (-?\\d+) dBm");
+        static const QRegularExpression ipRx("inet (\\d+\\.\\d+\\.\\d+\\.\\d+)/");
+
         // Extract SSID
-        QRegularExpression ssidRx("SSID: (.+)");
         QRegularExpressionMatch match = ssidRx.match(output);
         if (match.hasMatch())
             setSsid(match.captured(1).trimmed());
 
         // Extract signal strength
-        QRegularExpression signalRx("signal: (-?\\d+) dBm");
         QRegularExpressionMatch signalMatch = signalRx.match(output);
         if (signalMatch.hasMatch())
             setSignalStrength(signalMatch.captured(1).toInt());
@@ -187,7 +193,6 @@ void InternalWiFiManager::checkConnectionStatus()
         ipProc.start();
         ipProc.waitForFinished(3000);
         QString ipOutput = ipProc.readAllStandardOutput();
-        QRegularExpression ipRx("inet (\\d+\\.\\d+\\.\\d+\\.\\d+)/");
         QRegularExpressionMatch ipMatch = ipRx.match(ipOutput);
         if (ipMatch.hasMatch())
             setIpAddress(ipMatch.captured(1));
@@ -257,7 +262,8 @@ void InternalWiFiManager::setStaticIP(const QString &ip, const QString &netmask,
         QProcess *proc = new QProcess(this);
         QStringList commands;
         commands << QString("ip addr flush dev %1").arg(m_interface);
-        commands << QString("ip addr add %1/%2 dev %3").arg(ip).arg(netmask == "255.255.255.0" ? "24" : "24").arg(m_interface);
+        int cidr = (netmask == "255.255.255.0" ? 24 : netmask == "255.255.0.0" ? 16 : netmask == "255.0.0.0" ? 8 : 24);
+        commands << QString("ip addr add %1/%2 dev %3").arg(ip).arg(cidr).arg(m_interface);
 
         if (!gateway.isEmpty()) {
             commands << QString("ip route add default via %1 dev %2").arg(gateway).arg(m_interface);
@@ -319,7 +325,7 @@ void InternalWiFiManager::connectToCarputerECU()
                 checkConnectionStatus();
                 if (m_connected && m_ssid == "Carputer_ECU") {
                     setStatusText("Connected to Carputer_ECU, setting static IP...");
-                    setStaticIP("192.168.4.2", "255.255.255.0", "192.168.4.1");
+                    setStaticIP("192.168.4.3", "255.255.255.0", "192.168.4.1");
                     waitTimer->stop();
                     waitTimer->deleteLater();
                 } else if (++m_connectRetryCount > 10) {

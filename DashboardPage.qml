@@ -11,6 +11,7 @@ Item {
     property bool acOn: configManager.acEnabled
     property bool doorsLocked: carControlManager ? carControlManager.doorsLocked : false
     property bool remoteStartActive: carControlManager ? carControlManager.remoteStartActive : false
+    property int fanRelay: carControlManager ? carControlManager.fanRelay : 0
     property real temperature: configManager.targetTemp
     property bool autoMode: configManager.autoMode
     property bool recirculate: configManager.recirculate
@@ -37,6 +38,7 @@ Item {
     property string oilPressureAlert: {
         if (!sensorManager) return "ok"
         var p = sensorManager.oilPressure
+        if (p <= 0) return "ok"
         if (p < 10) return "critical"
         if (p < 20) return "danger"
         if (p < 40) return "caution"
@@ -45,6 +47,7 @@ Item {
     property string batteryAlert: {
         if (!sensorManager) return "ok"
         var b = sensorManager.battery
+        if (b <= 0) return "ok"
         if (b < 10) return "critical"
         if (b < 25) return "danger"
         if (b < 50) return "caution"
@@ -186,9 +189,14 @@ Item {
                 anchors { left: parent.left; leftMargin: 20; verticalCenter: parent.verticalCenter }
                 value: sensorManager ? sensorManager.speed : 0
                 minValue: 0; maxValue: 120
-                label: "MPH"
-                fontSize: 16
-                warnValue: 0.8; dangerValue: 0.95
+                label: "SPEED"
+                unitLabel: "mph"
+                fontSize: 22
+                majorTicks: 6
+                minorTicks: 4
+                warnValue: 0.75; dangerValue: 0.92
+                redlineStart: 0.92
+                thickness: 0.12
             }
 
             // RPM Gauge
@@ -198,9 +206,14 @@ Item {
                 anchors { right: parent.right; rightMargin: 20; verticalCenter: parent.verticalCenter }
                 value: sensorManager ? sensorManager.rpm : 0
                 minValue: 0; maxValue: 8000
-                label: "RPM"
-                fontSize: 16
-                warnValue: 0.75; dangerValue: 0.9
+                label: "ENGINE"
+                unitLabel: "rpm"
+                fontSize: 22
+                majorTicks: 8
+                minorTicks: 4
+                warnValue: 0.75; dangerValue: 0.875
+                redlineStart: 0.75
+                thickness: 0.12
             }
 
             // Central Info Panel
@@ -245,6 +258,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: themeManager.bgPanel; clip: true
                                     Image {
+                                        id: dashArtwork
                                         anchors.fill: parent
                                         source: mediaManager.artworkUrl.length > 0 ? mediaManager.artworkUrl : ""
                                         fillMode: Image.PreserveAspectCrop
@@ -254,7 +268,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent; text: "♫"
                                         font.pixelSize: 28; color: themeManager.textSecondary
-                                        visible: parent.children[1].status !== Image.Ready
+                                        visible: dashArtwork.status !== Image.Ready
                                     }
                                 }
                                 Column {
@@ -387,39 +401,36 @@ Item {
                         font.pixelSize: 11; font.bold: true
                     }
 
-                    Item {
-                        anchors.fill: parent
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 12
-                            Text { text: "VEHICLE STATUS"; color: themeManager.textSecondary; font.pixelSize: 10 }
-                            Row {
-                                spacing: 6; anchors.horizontalCenter: parent.horizontalCenter
-                                Rectangle { width: 12; height: 12; radius: 6; color: sensorManager && sensorManager.connected ? themeManager.statusGreen : themeManager.statusRed }
-                                Text {
-                                    text: sensorManager && sensorManager.connected ? "ALL SYSTEMS NOMINAL" : "SENSOR OFFLINE"
-                                    color: sensorManager && sensorManager.connected ? themeManager.statusGreen : themeManager.statusRed
-                                    font.pixelSize: 18; font.bold: true
-                                }
+                    Column {
+                        width: parent.width
+                        spacing: 12
+                        Text { text: "VEHICLE STATUS"; color: themeManager.textSecondary; font.pixelSize: 10 }
+                        Row {
+                            spacing: 6; anchors.horizontalCenter: parent.horizontalCenter
+                            Rectangle { width: 12; height: 12; radius: 6; color: sensorManager && sensorManager.connected ? themeManager.statusGreen : themeManager.statusRed }
+                            Text {
+                                text: sensorManager && sensorManager.connected ? "ALL SYSTEMS NOMINAL" : "SENSOR OFFLINE"
+                                color: sensorManager && sensorManager.connected ? themeManager.statusGreen : themeManager.statusRed
+                                font.pixelSize: 18; font.bold: true
                             }
-                            Rectangle { width: parent.width; height: 1; color: themeManager.bgPanel }
-                            Column { spacing: 6; width: parent.width
-                                Row { width: parent.width
-                                    Text { text: "Ambient"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
-                                    Text { text: sensorManager ? sensorManager.ambientTemp + "°F" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
-                                }
-                                Row { width: parent.width
-                                    Text { text: "Intake"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
-                                    Text { text: sensorManager ? sensorManager.intakeTemp + "°F" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
-                                }
-                                Row { width: parent.width
-                                    Text { text: "Oil Temp"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
-                                    Text { text: sensorManager ? sensorManager.oilTemp + "°F" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
-                                }
-                                Row { width: parent.width
-                                    Text { text: "Brake Fluid"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
-                                    Text { text: sensorManager ? sensorManager.brakeFluid + "%" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
-                                }
+                        }
+                        Rectangle { width: parent.width; height: 1; color: themeManager.bgPanel }
+                        Column { spacing: 6; width: parent.width
+                            Row { width: parent.width
+                                Text { text: "Ambient"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
+                                Text { text: sensorManager ? sensorManager.ambientTemp + "°F" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
+                            }
+                            Row { width: parent.width
+                                Text { text: "Intake"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
+                                Text { text: sensorManager ? sensorManager.intakeTemp + "°F" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
+                            }
+                            Row { width: parent.width
+                                Text { text: "Oil Temp"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
+                                Text { text: sensorManager ? sensorManager.oilTemp + "°F" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
+                            }
+                            Row { width: parent.width
+                                Text { text: "Brake Fluid"; color: themeManager.textSecondary; font.pixelSize: 12; width: parent.width / 2 }
+                                Text { text: sensorManager ? sensorManager.brakeFluid + "%" : "--"; color: themeManager.textPrimary; font.pixelSize: 14; font.bold: true }
                             }
                         }
                     }
@@ -432,7 +443,6 @@ Item {
                 }
             }
 
-            // Small gauges below speedo
             AnalogGauge {
                 id: fuelGauge
                 width: 160; height: 120
@@ -440,26 +450,79 @@ Item {
                 value: sensorManager ? sensorManager.fuelLevel : 0
                 minValue: 0; maxValue: 100
                 label: "FUEL"
-                fontSize: 10
+                unitLabel: "%"
+                fontSize: 11
+                majorTicks: 4
+                minorTicks: 2
                 showValue: true; showNeedle: true
                 startAngle: 180; endAngle: 360
-                warnValue: 0.25; dangerValue: 0.1
-                thickness: 0.2
+                warnValue: 0.25; dangerValue: 0.10
+                redlineStart: 1.0
+                thickness: 0.22
             }
 
-            // Small gauges below RPM
             AnalogGauge {
                 id: tempGauge
                 width: 160; height: 120
                 anchors { right: rpmGauge.right; top: rpmGauge.bottom; topMargin: 6 }
                 value: sensorManager ? sensorManager.coolantTemp : 0
                 minValue: 100; maxValue: 280
-                label: "TEMP °F"
-                fontSize: 10
+                label: "COOLANT"
+                unitLabel: "°F"
+                fontSize: 11
+                majorTicks: 4
+                minorTicks: 2
                 showValue: true; showNeedle: true
                 startAngle: 180; endAngle: 360
-                warnValue: 0.67; dangerValue: 0.72
-                thickness: 0.2
+                warnValue: 0.67; dangerValue: 0.78
+                redlineStart: 0.67
+                thickness: 0.22
+            }
+
+            // Fan status indicator
+            Row {
+                anchors { horizontalCenter: tempGauge.horizontalCenter; bottom: tempGauge.top; bottomMargin: 4 }
+                spacing: 6
+
+                Rectangle {
+                    width: 28; height: 28; radius: 14
+                    border.width: 2
+                    border.color: dashPage.fanRelay >= 1 ? themeManager.carBlue : themeManager.textSecondary
+                    color: dashPage.fanRelay >= 1 ? themeManager.carBlue : "transparent"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "1"
+                        font.pixelSize: 13; font.bold: true
+                        color: dashPage.fanRelay >= 1 ? "#ffffff" : themeManager.textSecondary
+                    }
+                }
+
+                Rectangle {
+                    width: 28; height: 28; radius: 14
+                    border.width: 2
+                    border.color: dashPage.fanRelay >= 2 ? themeManager.carBlue : themeManager.textSecondary
+                    color: dashPage.fanRelay >= 2 ? themeManager.carBlue : "transparent"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "2"
+                        font.pixelSize: 13; font.bold: true
+                        color: dashPage.fanRelay >= 2 ? "#ffffff" : themeManager.textSecondary
+                    }
+                }
+
+                // DEBUG: Fan relay value indicator
+                Rectangle {
+                    width: 60; height: 28; radius: 4
+                    color: "#aa000000"
+                    border.width: 2
+                    border.color: dashPage.fanRelay > 0 ? themeManager.carBlue : themeManager.textSecondary
+                    Text {
+                        anchors.centerIn: parent
+                        text: "F:" + dashPage.fanRelay
+                        font.pixelSize: 14; font.bold: true
+                        color: dashPage.fanRelay > 0 ? themeManager.carBlue : themeManager.textSecondary
+                    }
+                }
             }
         }
 

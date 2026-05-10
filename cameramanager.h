@@ -1,8 +1,12 @@
 #pragma once
 
 #include <QObject>
-#include <QProcess>
-#include <QTimer>
+#include <QString>
+#include <QStringList>
+#include <gst/gst.h>
+#include <gst/app/gstappsink.h>
+
+class VideoFrameProvider;
 
 class CameraManager : public QObject
 {
@@ -15,6 +19,8 @@ class CameraManager : public QObject
 public:
     explicit CameraManager(QObject *parent = nullptr);
     ~CameraManager();
+
+    void setVideoFrameProvider(VideoFrameProvider *provider);
 
     bool streaming() const { return m_streaming; }
     QString device() const { return m_device; }
@@ -33,14 +39,18 @@ signals:
     void availableDevicesChanged();
     void errorOccurred(const QString &msg);
 
-private slots:
-    void onProcessStarted();
-    void onProcessError(QProcess::ProcessError error);
-    void onProcessFinished(int code, QProcess::ExitStatus status);
-
 private:
-    QProcess *m_process = nullptr;
+    void setupPipeline();
+    void teardownPipeline();
+
+    friend GstFlowReturn onCameraSample(GstAppSink *appsink, gpointer data);
+
+    VideoFrameProvider *m_videoProvider = nullptr;
     bool m_streaming = false;
     QString m_device;
     QStringList m_availableDevices;
+
+    GstElement *m_pipeline = nullptr;
+    GstElement *m_appsink = nullptr;
+    guint m_busWatchId = 0;
 };

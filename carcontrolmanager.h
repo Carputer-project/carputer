@@ -23,6 +23,7 @@ class CarControlManager : public QObject
     // Vehicle properties
     Q_PROPERTY(bool doorsLocked     READ doorsLocked  NOTIFY doorsLockedChanged)
     Q_PROPERTY(bool remoteStartActive READ remoteStartActive NOTIFY remoteStartActiveChanged)
+    Q_PROPERTY(int  fanRelay        READ fanRelay        NOTIFY fanRelayChanged)
 
 public:
     explicit CarControlManager(QObject *parent = nullptr);
@@ -41,6 +42,7 @@ public:
     // Vehicle
     bool doorsLocked()       const { return m_doorsLocked; }
     bool remoteStartActive() const { return m_remoteStartActive; }
+    int  fanRelay()        const { return m_fanRelay; }
 
     // Commands
     Q_INVOKABLE void setPort(const QString &port);
@@ -55,6 +57,7 @@ public:
     Q_INVOKABLE void windowsDown();
     Q_INVOKABLE void startRemote();
     Q_INVOKABLE void stopRemote();
+    Q_INVOKABLE void setFanRelay(int level);   // 0=off, 1=low, 2=high
 
     // Status query
     Q_INVOKABLE void queryStatus();
@@ -70,6 +73,7 @@ signals:
 
     void doorsLockedChanged();
     void remoteStartActiveChanged();
+    void fanRelayChanged();
 
     void errorOccurred(const QString &error);
 
@@ -101,6 +105,7 @@ private:
     // Vehicle state
     bool m_doorsLocked       = false;
     bool m_remoteStartActive = false;
+    int  m_fanRelay          = 0;
 };
 
 #endif // CARCONTROLMANAGER_H

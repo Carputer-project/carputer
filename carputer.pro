@@ -25,6 +25,7 @@ SOURCES += \
     updatemanager.cpp \
     mediamanager.cpp \
     artworkprovider.cpp \
+    videoframeprovider.cpp \
     dvrmanager.cpp \
     carplaymanager.cpp \
     carcontrolmanager.cpp \
@@ -32,7 +33,8 @@ SOURCES += \
     sensormanager.cpp \
     audiomanager.cpp \
     internalwifimanager.cpp \
-    debugmanager.cpp
+    debugmanager.cpp \
+    installmanager.cpp
 
 HEADERS += \
     systemmanager.h \
@@ -43,6 +45,7 @@ HEADERS += \
     updatemanager.h \
     mediamanager.h \
     artworkprovider.h \
+    videoframeprovider.h \
     dvrmanager.h \
     carplaymanager.h \
     carcontrolmanager.h \
@@ -50,7 +53,8 @@ HEADERS += \
     sensormanager.h \
     audiomanager.h \
     internalwifimanager.h \
-    debugmanager.h
+    debugmanager.h \
+    installmanager.h
 
 RESOURCES += qml.qrc
 

@@ -1,30 +1,22 @@
 #include "updatemanager.h"
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QFile>
 #include <QDir>
+#include <QDirIterator>
 #include <QProcess>
 #include <QStorageInfo>
-#include <QHostAddress>
-#include <QNetworkDatagram>
 #include <QDebug>
 
 Q_LOGGING_CATEGORY(lcUpdate, "carputer.update")
-
-// ── Constructor ───────────────────────────────────────────────────────────────
 
 UpdateManager::UpdateManager(QObject *parent) : QObject(parent)
 {
     m_nam = new QNetworkAccessManager(this);
 
-    // UDP socket for LAN server auto-discovery
-    m_udpSocket = new QUdpSocket(this);
-    m_udpSocket->bind(QHostAddress::AnyIPv4, DISCOVERY_PORT,
-                      QAbstractSocket::ShareAddress | QAbstractSocket::ReuseAddressHint);
-    connect(m_udpSocket, &QUdpSocket::readyRead,
-            this, &UpdateManager::onDiscoveryResponse);
-
-    // USB drive scanner — checks every 3 s
     m_usbTimer = new QTimer(this);
     m_usbTimer->setInterval(USB_CHECK_MS);
     connect(m_usbTimer, &QTimer::timeout, this, &UpdateManager::scanUsbDrives);
@@ -37,9 +29,11 @@ UpdateManager::UpdateManager(QObject *parent) : QObject(parent)
 UpdateManager::~UpdateManager()
 {
     if (m_reply) m_reply->abort();
+    if (m_wget) {
+        m_wget->kill();
+        m_wget->waitForFinished(2000);
+    }
 }
-
-// ── Version ───────────────────────────────────────────────────────────────────
 
 QString UpdateManager::readCurrentVersion()
 {
@@ -49,125 +43,140 @@ QString UpdateManager::readCurrentVersion()
     return QStringLiteral("unknown");
 }
 
-// ── Server auto-discovery (UDP broadcast) ─────────────────────────────────────
-
-void UpdateManager::discoverServer()
-{
-    setStatus(QStringLiteral("Searching for update server..."));
-    m_udpSocket->writeDatagram("CARPUTER_UPDATE_DISCOVER",
-                               QHostAddress::Broadcast, DISCOVERY_PORT);
-    qCDebug(lcUpdate) << "Discovery broadcast sent";
-}
-
-void UpdateManager::onDiscoveryResponse()
-{
-    while (m_udpSocket->hasPendingDatagrams()) {
-        const QNetworkDatagram dg = m_udpSocket->receiveDatagram();
-        const QString response = QString::fromUtf8(dg.data()).trimmed();
-
-        // Expected response: "CARPUTER_UPDATE_SERVER:<version>"
-        if (!response.startsWith(QLatin1String("CARPUTER_UPDATE_SERVER:")))
-            continue;
-
-        m_serverVersion = response.section(':', 1);
-        m_serverUrl     = QString("http://%1:%2").arg(dg.senderAddress().toString())
-                                                 .arg(SERVER_PORT);
-
-        qCInfo(lcUpdate) << "Update server found at" << m_serverUrl
-                         << "version" << m_serverVersion;
-
-        emit serverUrlChanged();
-        emit serverVersionChanged();
-
-        m_updateAvailable = (!m_serverVersion.isEmpty()
-                             && m_serverVersion != m_currentVersion);
-        emit updateAvailableChanged();
-
-        setStatus(m_updateAvailable
-            ? QString("Update available: %1 → %2").arg(m_currentVersion, m_serverVersion)
-            : QString("Already up to date (%1)").arg(m_currentVersion));
-
-        setBusy(false);
-    }
-}
-
-// ── Network update ────────────────────────────────────────────────────────────
-
 void UpdateManager::checkForUpdate()
 {
     if (m_busy) return;
     setBusy(true);
     setProgress(0);
-    m_serverUrl.clear();
     m_serverVersion.clear();
+    m_downloadUrl.clear();
     m_updateAvailable = false;
-    emit serverUrlChanged();
     emit serverVersionChanged();
     emit updateAvailableChanged();
 
-    discoverServer();
+    setStatus(QStringLiteral("Checking for updates..."));
 
-    // Time out after 5 s if no server responds
-    QTimer::singleShot(5000, this, [this]() {
-        if (m_serverUrl.isEmpty()) {
-            setBusy(false);
-            setStatus(QStringLiteral("No update server found on network"));
-        }
-    });
-}
+    QUrl apiUrl{QString::fromLatin1(GITHUB_API)};
+    QNetworkRequest req{apiUrl};
+    req.setRawHeader("Accept", "application/vnd.github.v3+json");
+    req.setRawHeader("User-Agent", USER_AGENT);
+    req.setTransferTimeout(15000);
 
-void UpdateManager::applyNetworkUpdate()
-{
-    if (m_busy || m_serverUrl.isEmpty()) return;
-    setBusy(true);
-    setProgress(0);
-    setStatus(QStringLiteral("Downloading update..."));
-
-    const QString url = m_serverUrl + "/" + QLatin1String(PACKAGE_NAME);
-    QNetworkRequest req(url);
     m_reply = m_nam->get(req);
-
-    connect(m_reply, &QNetworkReply::downloadProgress,
-            this, &UpdateManager::onDownloadProgress);
     connect(m_reply, &QNetworkReply::finished,
-            this, &UpdateManager::onDownloadFinished);
+            this, &UpdateManager::onGitHubReplyFinished);
 }
 
-void UpdateManager::onDownloadProgress(qint64 received, qint64 total)
-{
-    if (total > 0) {
-        setProgress(static_cast<int>(received * 100 / total));
-        setStatus(QString("Downloading... %1%").arg(m_progress));
-    }
-}
-
-void UpdateManager::onDownloadFinished()
+void UpdateManager::onGitHubReplyFinished()
 {
     if (!m_reply) return;
 
     if (m_reply->error() != QNetworkReply::NoError) {
-        setStatus("Download failed: " + m_reply->errorString());
-        setBusy(false);
+        setStatus("Update check failed: " + m_reply->errorString());
         m_reply->deleteLater();
         m_reply = nullptr;
-        emit updateComplete(false, m_status);
+        setBusy(false);
         return;
     }
 
-    // Write download to temp file
-    QFile f{QLatin1String(DOWNLOAD_TMP)};
-    if (!f.open(QIODevice::WriteOnly)) {
-        setStatus(QStringLiteral("Failed to write download to /tmp"));
+    QByteArray data = m_reply->readAll();
+    m_reply->deleteLater();
+    m_reply = nullptr;
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        setStatus(QStringLiteral("Update check failed: invalid response"));
         setBusy(false);
-        m_reply->deleteLater();
-        m_reply = nullptr;
+        return;
+    }
+
+    QJsonObject root = doc.object();
+
+    QString tag = root.value("tag_name").toString();
+    if (tag.isEmpty()) {
+        setStatus(QStringLiteral("Update check failed: no version tag"));
+        setBusy(false);
+        return;
+    }
+
+    m_serverVersion = tag;
+    if (m_serverVersion.startsWith('v'))
+        m_serverVersion = m_serverVersion.mid(1);
+    emit serverVersionChanged();
+
+    QJsonArray assets = root.value("assets").toArray();
+    for (const QJsonValue &val : assets) {
+        QJsonObject asset = val.toObject();
+        if (asset.value("name").toString() == QLatin1String(PACKAGE_NAME)) {
+            m_downloadUrl = asset.value("browser_download_url").toString();
+            break;
+        }
+    }
+
+    if (m_downloadUrl.isEmpty()) {
+        setStatus(QString("Version %1 found but no package asset").arg(m_serverVersion));
+        setBusy(false);
+        return;
+    }
+
+    m_updateAvailable = isNewerVersion(m_currentVersion, m_serverVersion);
+    emit updateAvailableChanged();
+
+    if (m_updateAvailable) {
+        setStatus(QString("Update available: %1 \u2192 %2").arg(m_currentVersion, m_serverVersion));
+    } else {
+        setStatus(QString("Already up to date (%1)").arg(m_currentVersion));
+    }
+
+    setBusy(false);
+}
+
+void UpdateManager::applyNetworkUpdate()
+{
+    if (m_busy || m_downloadUrl.isEmpty()) return;
+    setBusy(true);
+    setProgress(0);
+    setStatus(QStringLiteral("Downloading update..."));
+
+    if (m_wget) {
+        m_wget->kill();
+        m_wget->waitForFinished(2000);
+        m_wget->deleteLater();
+    }
+    m_wget = new QProcess(this);
+    m_wget->setProcessChannelMode(QProcess::MergedChannels);
+    connect(m_wget, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &UpdateManager::onWgetFinished);
+    connect(m_wget, &QProcess::readyReadStandardOutput, this, [this]() {
+        QString line = QString::fromUtf8(m_wget->readAllStandardOutput()).trimmed();
+        if (!line.isEmpty())
+            qDebug() << "[wget]" << line;
+    });
+
+    m_wget->start(QStringLiteral("wget"),
+                  { QStringLiteral("-O"), QLatin1String(DOWNLOAD_TMP),
+                    m_downloadUrl });
+}
+
+void UpdateManager::onWgetFinished()
+{
+    if (!m_wget) return;
+
+    int code = m_wget->exitCode();
+    QString output = QString::fromUtf8(m_wget->readAllStandardOutput()).trimmed();
+    m_wget->deleteLater();
+    m_wget = nullptr;
+
+    if (code != 0) {
+        setStatus(QString("Download failed (exit %1)").arg(code));
+        if (!output.isEmpty())
+            qCWarning(lcUpdate) << "wget:" << output;
+        setBusy(false);
+        QFile::remove(QLatin1String(DOWNLOAD_TMP));
         emit updateComplete(false, m_status);
         return;
     }
-    f.write(m_reply->readAll());
-    f.close();
-    m_reply->deleteLater();
-    m_reply = nullptr;
 
     setProgress(100);
     setStatus(QStringLiteral("Applying update..."));
@@ -178,21 +187,19 @@ void UpdateManager::onDownloadFinished()
     if (ok) {
         m_currentVersion = readCurrentVersion();
         emit currentVersionChanged();
-        setStatus(QString("Update applied! Now at %1 — restarting...").arg(m_currentVersion));
+        setStatus(QString("Update applied! Now at %1 \u2014 restarting...").arg(m_currentVersion));
         emit updateComplete(true, m_status);
         QTimer::singleShot(2000, this, []() {
             QProcess::startDetached(QStringLiteral("systemctl"),
                                     { QStringLiteral("restart"), QStringLiteral("carputer") });
         });
     } else {
-        setStatus(QStringLiteral("Update failed — check logs"));
+        setStatus(QStringLiteral("Update failed \u2014 check logs"));
         emit updateComplete(false, m_status);
     }
 
     setBusy(false);
 }
-
-// ── USB update ────────────────────────────────────────────────────────────────
 
 void UpdateManager::scanUsbDrives()
 {
@@ -249,35 +256,24 @@ void UpdateManager::applyUsbUpdate()
     if (ok) {
         m_currentVersion = readCurrentVersion();
         emit currentVersionChanged();
-        setStatus(QString("Update applied! Now at %1 — restarting...").arg(m_currentVersion));
+        setStatus(QString("Update applied! Now at %1 \u2014 restarting...").arg(m_currentVersion));
         emit updateComplete(true, m_status);
         QTimer::singleShot(2000, this, []() {
             QProcess::startDetached(QStringLiteral("systemctl"),
                                     { QStringLiteral("restart"), QStringLiteral("carputer") });
         });
     } else {
-        setStatus(QStringLiteral("USB update failed — check logs"));
+        setStatus(QStringLiteral("USB update failed \u2014 check logs"));
         emit updateComplete(false, m_status);
     }
 
     setBusy(false);
 }
 
-// ── Package extraction ────────────────────────────────────────────────────────
-//
-// Bug fix: previously the tar was extracted directly to /usr/bin/ which put
-// version.txt at /usr/bin/version.txt. The app reads version from
-// /etc/carputer/version.txt, so the version never updated after OTA installs.
-//
-// Fix: extract to a temp staging dir, then copy each file to its proper dest:
-//   carputer    → /usr/bin/carputer
-//   version.txt → /etc/carputer/version.txt
-//
 bool UpdateManager::applyPackage(const QString &packagePath)
 {
     qCInfo(lcUpdate) << "Applying package:" << packagePath;
 
-    // Clean and create staging dir
     const QString staging = QLatin1String(STAGING_DIR);
     QDir(staging).removeRecursively();
     if (!QDir().mkpath(staging)) {
@@ -285,22 +281,33 @@ bool UpdateManager::applyPackage(const QString &packagePath)
         return false;
     }
 
-    // Extract package into staging dir
     QProcess tar;
-    tar.start(QStringLiteral("tar"),
-              { QStringLiteral("-xzf"), packagePath,
-                QStringLiteral("-C"),   staging });
+    tar.start(QStringLiteral("sh"),
+              { QStringLiteral("-c"),
+                QStringLiteral("zcat '%1' | tar -xf - -C '%2'")
+                    .arg(packagePath, staging) });
     if (!tar.waitForFinished(30000) || tar.exitCode() != 0) {
         qCWarning(lcUpdate) << "tar failed:" << tar.readAllStandardError();
         QDir(staging).removeRecursively();
         return false;
     }
 
-    // ── Install binary ─────────────────────────────────────────────────────
-    const QString stagedBinary = staging + "/carputer";
-    const QString destBinary   = QLatin1String(BINARY_DEST);
-    if (!QFile::exists(stagedBinary)) {
-        qCWarning(lcUpdate) << "Binary not found in package";
+    QString stagedBinary;
+    QString stagedVersion;
+    QDirIterator it(staging, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        QString name = it.fileName();
+        QString path = it.filePath();
+        if (name == "carputer" && stagedBinary.isEmpty())
+            stagedBinary = path;
+        else if (name == "version.txt" && stagedVersion.isEmpty())
+            stagedVersion = path;
+    }
+
+    const QString destBinary = QLatin1String(BINARY_DEST);
+    if (stagedBinary.isEmpty() || !QFile::exists(stagedBinary)) {
+        qCWarning(lcUpdate) << "Binary (carputer) not found in package";
         QDir(staging).removeRecursively();
         return false;
     }
@@ -312,28 +319,42 @@ bool UpdateManager::applyPackage(const QString &packagePath)
     }
     QProcess::execute(QStringLiteral("chmod"), { QStringLiteral("+x"), destBinary });
 
-    // ── Install version.txt → /etc/carputer/version.txt ───────────────────
-    const QString stagedVersion = staging + "/version.txt";
-    const QString destVersion   = QLatin1String(VERSION_FILE);
-    QDir().mkpath(QFileInfo(destVersion).path()); // ensure /etc/carputer/ exists
-    if (QFile::exists(stagedVersion)) {
+    const QString destVersion = QLatin1String(VERSION_FILE);
+    QDir().mkpath(QFileInfo(destVersion).path());
+    if (!stagedVersion.isEmpty() && QFile::exists(stagedVersion)) {
         QFile::remove(destVersion);
         if (!QFile::copy(stagedVersion, destVersion)) {
             qCWarning(lcUpdate) << "Failed to install version.txt to" << destVersion;
-            // Non-fatal — binary is already installed
         }
     } else {
-        qCWarning(lcUpdate) << "version.txt missing from package — version will not update";
+        qCWarning(lcUpdate) << "version.txt not found in package";
     }
 
-    // Cleanup staging
     QDir(staging).removeRecursively();
 
     qCInfo(lcUpdate) << "Package applied successfully";
     return true;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+bool UpdateManager::isNewerVersion(const QString &current, const QString &latest)
+{
+    QString c = current;
+    QString l = latest;
+    if (c.startsWith('v')) c = c.mid(1);
+    if (l.startsWith('v')) l = l.mid(1);
+
+    QStringList cParts = c.split('.');
+    QStringList lParts = l.split('.');
+
+    int maxParts = qMax(cParts.size(), lParts.size());
+    for (int i = 0; i < maxParts; ++i) {
+        int cVal = (i < cParts.size()) ? cParts[i].toInt() : 0;
+        int lVal = (i < lParts.size()) ? lParts[i].toInt() : 0;
+        if (lVal > cVal) return true;
+        if (lVal < cVal) return false;
+    }
+    return false;
+}
 
 void UpdateManager::setStatus(const QString &s)
 {

@@ -1,11 +1,24 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+
 Item {
     focus: true
-    // ── Internal state ────────────────────────────────────────────────────────
-    property int activeTab: 0   // 0 = Record, 1 = Library
-    // ── Tab bar ───────────────────────────────────────────────────────────────
+    property int activeTab: 0
+    property int refreshTick: 0
+
+    onVisibleChanged: {
+        if (visible && activeTab === 0) dvrManager.startPreview()
+        else if (!visible) dvrManager.stopPreview()
+    }
+
+    Timer {
+        interval: 50
+        running: visible && (dvrManager.previewActive || dvrManager.playing)
+        repeat: true
+        onTriggered: refreshTick++
+    }
+
     Rectangle {
         id: tabBar
         anchors { top: parent.top; left: parent.left; right: parent.right }
@@ -34,80 +47,65 @@ Item {
                     }
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: activeTab = index
+                        onClicked: {
+                            activeTab = index
+                            if (activeTab === 0) dvrManager.startPreview()
+                        }
                     }
                 }
             }
         }
     }
-    // ── Content area (below tab bar) ──────────────────────────────────────────
+
     Item {
         anchors {
             top: tabBar.bottom
             left: parent.left; right: parent.right; bottom: parent.bottom
         }
-        // ════════════════════════════════════════════════════════════════════
-        // TAB 0 — RECORD
-        // ════════════════════════════════════════════════════════════════════
+
+        // ════════════════════════════════════════════════════════════════
+        // TAB 0 — RECORD with live video
+        // ════════════════════════════════════════════════════════════════
         Column {
             anchors.fill: parent
             anchors.margins: 10
             spacing: 8
             visible: activeTab === 0
-            // Camera preview area
+
             Rectangle {
                 width: parent.width
                 height: parent.height - 170
-                color: themeManager.bgDark
+                color: themeManager.black
                 radius: 8
                 border.color: dvrManager.recording ? themeManager.statusRed : themeManager.bgPanel
                 border.width: dvrManager.recording ? 3 : 1
-                Rectangle {
+                clip: true
+
+                Image {
                     anchors.centerIn: parent
-                    width: 80; height: 80
-                    radius: 40
-                    color: "transparent"
-                    border.color: themeManager.statusRed
-                    border.width: 3
-                    visible: dvrManager.recording
-                    NumberAnimation on opacity {
-                        id: recordPulse
-                        running: dvrManager.recording
-                        from: 1.0; to: 0.1
-                        duration: 900
-                        loops: Animation.Infinite
-                    }
+                    width: parent.width
+                    height: parent.height
+                    fillMode: Image.PreserveAspectFit
+                    source: "image://video/dvr-live?" + refreshTick
+                    asynchronous: true
+                    cache: false
                 }
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 8
+
+                Rectangle {
+                    anchors { top: parent.top; right: parent.right; margins: 8 }
+                    height: 28; width: 80
+                    radius: 4
+                    color: dvrManager.recording ? "#CC0000" : "#333355"
+                    visible: dvrManager.recording
                     Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: dvrManager.recording ? "● REC" : "○"
-                        color: dvrManager.recording ? themeManager.statusRed : "#333355"
-                        font.pixelSize: dvrManager.recording ? 28 : 64
+                        anchors.centerIn: parent
+                        text: "● REC " + dvrManager.recordingSeconds + "s"
+                        color: "white"
+                        font.pixelSize: 13
                         font.bold: true
                     }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: dvrManager.recording
-                              ? formatRecTime(dvrManager.recordingSeconds)
-                              : "Camera: " + dvrManager.cameraSource.split("/").pop()
-                        color: dvrManager.recording ? themeManager.textPrimary : "#333355"
-                        font.pixelSize: dvrManager.recording ? 36 : 18
-                        font.bold: dvrManager.recording
-                    }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        visible: dvrManager.recording
-                        text: dvrManager.currentFile.split("/").pop()
-                        color: themeManager.textSecondary
-                        font.pixelSize: 11
-                        elide: Text.ElideLeft
-                        width: 300
-                    }
                 }
-                // Camera source chip
+
                 Rectangle {
                     anchors { bottom: parent.bottom; left: parent.left; margins: 10 }
                     height: 26; width: sourceLabel.implicitWidth + 20
@@ -122,11 +120,10 @@ Item {
                     }
                 }
             }
-            // ── Transport controls ────────────────────────────────────────
+
             Row {
                 width: parent.width
                 spacing: 10
-                // Big RECORD / STOP button
                 Rectangle {
                     width: (parent.width - 10) * 0.65
                     height: 72
@@ -139,8 +136,9 @@ Item {
                         spacing: 12
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: dvrManager.recording ? "⏹" : "⏺"
-                            font.pixelSize: 30
+                            text: dvrManager.recording ? "STOP" : "REC"
+                            font.pixelSize: 28
+                            font.bold: true
                             color: dvrManager.recording ? themeManager.statusRed : themeManager.carBlue
                         }
                         Text {
@@ -157,7 +155,6 @@ Item {
                                                         : dvrManager.startRecording()
                     }
                 }
-                // Camera source selector
                 Rectangle {
                     width: (parent.width - 10) * 0.35
                     height: 72
@@ -194,7 +191,7 @@ Item {
                     }
                 }
             }
-            // ── Quick stats row ───────────────────────────────────────────
+
             Row {
                 width: parent.width
                 spacing: 8
@@ -252,7 +249,9 @@ Item {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: dvrManager.recording
-                                  ? formatRecTime(dvrManager.recordingSeconds)
+                                  ? (Math.floor(dvrManager.recordingSeconds / 60) + ":" +
+                                     (dvrManager.recordingSeconds % 60 < 10 ? "0" : "") +
+                                     dvrManager.recordingSeconds % 60)
                                   : "—"
                             color: dvrManager.recording ? themeManager.textPrimary : themeManager.textSecondary
                             font.pixelSize: 18; font.bold: true
@@ -260,81 +259,116 @@ Item {
                     }
                 }
             }
-        } // end Record tab column
-        // ════════════════════════════════════════════════════════════════════
-        // TAB 1 — LIBRARY
-        // ════════════════════════════════════════════════════════════════════
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // TAB 1 — LIBRARY with video player
+        // ════════════════════════════════════════════════════════════════
         Column {
             anchors.fill: parent
             anchors.margins: 10
-            spacing: 8
+            spacing: 6
             visible: activeTab === 1
-            // ── Mini player (shown when a file is loaded) ─────────────────
+
+            // Video player area (plays when a file is loaded)
             Rectangle {
                 width: parent.width
-                height: dvrManager.playingFile !== "" ? 110 : 0
+                height: dvrManager.playingFile !== "" ? 240 : 0
                 visible: height > 0
-                color: themeManager.bgCard
+                color: themeManager.black
                 radius: 8
                 clip: true
                 Behavior on height { NumberAnimation { duration: 180 } }
-                Column {
-                    anchors { fill: parent; margins: 12 }
-                    spacing: 6
-                    // File name + stop button
-                    Row {
-                        width: parent.width
-                        spacing: 8
-                        Text {
-                            width: parent.width - 44
-                            text: dvrManager.playingFile.split("/").pop()
-                            color: themeManager.textPrimary
-                            font.pixelSize: 14
-                            font.bold: true
-                            elide: Text.ElideLeft
-                        }
-                        Rectangle {
-                            width: 36; height: 36
-                            radius: 6; color: themeManager.bgPanel
-                            Text { anchors.centerIn: parent; text: "✕"; color: themeManager.textSecondary; font.pixelSize: 16 }
-                            MouseArea { anchors.fill: parent; onClicked: dvrManager.stopPlayback() }
-                        }
-                    }
-                    // Seek slider
-                    Slider {
-                        width: parent.width
-                        from: 0
-                        to: dvrManager.playDuration || 100
-                        value: dvrManager.playPosition
-                        onMoved: dvrManager.seekTo(value)
-                    }
-                    // Time + play/pause
+
+                Image {
+                    anchors.centerIn: parent
+                    width: parent.width
+                    height: parent.height - 40
+                    fillMode: Image.PreserveAspectFit
+                    source: dvrManager.playing ? "image://video/dvr-playback?" + refreshTick : ""
+                    asynchronous: true
+                    cache: false
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "No video playing"
+                    color: themeManager.textSecondary
+                    font.pixelSize: 16
+                    visible: dvrManager.playingFile === ""
+                }
+
+                // Playback controls overlay at bottom of video
+                Rectangle {
+                    anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+                    height: 40
+                    color: Qt.rgba(0, 0, 0, 0.6)
+                    visible: dvrManager.playingFile !== ""
+
                     RowLayout {
-                        width: parent.width
-                        spacing: 8
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 6
+
                         Text {
                             text: dvrManager.formatDuration(dvrManager.playPosition)
-                                  + " / "
-                                  + dvrManager.formatDuration(dvrManager.playDuration)
-                            color: themeManager.textSecondary; font.pixelSize: 12
+                            color: "white"
+                            font.pixelSize: 12
                             Layout.alignment: Qt.AlignVCenter
                         }
-                        Item { Layout.fillWidth: true }
+
+                        Slider {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            from: 0
+                            to: dvrManager.playDuration || 100
+                            value: dvrManager.playPosition
+                            onMoved: dvrManager.seekTo(value)
+                        }
+
+                        Text {
+                            text: dvrManager.formatDuration(dvrManager.playDuration)
+                            color: "#aaa"
+                            font.pixelSize: 12
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
                         Rectangle {
-                            width: 48; height: 32
-                            radius: 6; color: themeManager.carBlueDim
+                            width: 36; height: 28
+                            radius: 4; color: themeManager.carBlueDim
                             Layout.alignment: Qt.AlignVCenter
                             Text {
                                 anchors.centerIn: parent
                                 text: dvrManager.playing ? "⏸" : "▶"
-                                color: themeManager.carBlue; font.pixelSize: 18
+                                color: themeManager.carBlue
+                                font.pixelSize: 16
                             }
-                            MouseArea { anchors.fill: parent; onClicked: dvrManager.togglePause() }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: dvrManager.togglePause()
+                            }
+                        }
+
+                        Rectangle {
+                            width: 36; height: 28
+                            radius: 4; color: "#444"
+                            Layout.alignment: Qt.AlignVCenter
+                            Text {
+                                anchors.centerIn: parent
+                                text: "✕"
+                                color: "white"
+                                font.pixelSize: 16
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: dvrManager.stopPlayback()
+                            }
                         }
                     }
                 }
             }
-            // ── Header row ────────────────────────────────────────────────
+
+            // File list header
             Row {
                 width: parent.width
                 spacing: 8
@@ -344,17 +378,18 @@ Item {
                     color: themeManager.textSecondary; font.pixelSize: 14
                     anchors.verticalCenter: parent.verticalCenter
                 }
-                Item { width: 1; height: 1; implicitWidth: parent.width - 200 }
+                Item { Layout.fillWidth: true; width: 1; height: 1 }
                 Rectangle {
                     width: 90; height: 34; radius: 6; color: themeManager.bgCard
                     Text { anchors.centerIn: parent; text: "↻ Refresh"; color: themeManager.carBlue; font.pixelSize: 13 }
                     MouseArea { anchors.fill: parent; onClicked: dvrManager.scanRecordings() }
                 }
             }
-            // ── File list ─────────────────────────────────────────────────
+
+            // File list
             Rectangle {
                 width: parent.width
-                height: parent.height - (dvrManager.playingFile !== "" ? 110 : 0) - 42 - 16
+                height: parent.height - (dvrManager.playingFile !== "" ? 270 : 0) - 42 - 16
                 color: "transparent"
                 clip: true
                 ListView {
@@ -372,7 +407,6 @@ Item {
                         Row {
                             anchors { fill: parent; leftMargin: 14; rightMargin: 10 }
                             spacing: 10
-                            // File info
                             Column {
                                 width: parent.width - 120
                                 anchors.verticalCenter: parent.verticalCenter
@@ -383,11 +417,10 @@ Item {
                                     elide: Text.ElideLeft; width: parent.width
                                 }
                                 Text {
-                                    text: fileSizeLabel(modelData)
+                                    text: modelData.split("/").pop().replace("dashcam_", "").replace(".mkv","").replace("_"," ")
                                     color: themeManager.textSecondary; font.pixelSize: 11
                                 }
                             }
-                            // Play button
                             Rectangle {
                                 width: 48; height: 48
                                 radius: 8; color: themeManager.bgPanel
@@ -401,7 +434,6 @@ Item {
                                     }
                                 }
                             }
-                            // Delete button
                             Rectangle {
                                 width: 48; height: 48
                                 radius: 8; color: themeManager.bgPanel
@@ -414,7 +446,6 @@ Item {
                             }
                         }
                     }
-                    // Empty state
                     Text {
                         anchors.centerIn: parent
                         visible: dvrManager.recordings.length === 0
@@ -425,9 +456,9 @@ Item {
                     }
                 }
             }
-        } // end Library tab column
-    } // end content area
-    // ── Camera picker dialog ──────────────────────────────────────────────────
+        }
+    }
+
     Dialog {
         id: cameraPicker
         title: "Select Camera Source"
@@ -455,7 +486,7 @@ Item {
             }
         }
     }
-    // ── Delete confirmation ───────────────────────────────────────────────────
+
     QtObject {
         id: deleteConfirm
         property string filePath: ""
@@ -498,19 +529,5 @@ Item {
                 }
             }
         }
-    }
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    function formatRecTime(seconds) {
-        var h = Math.floor(seconds / 3600)
-        var m = Math.floor((seconds % 3600) / 60)
-        var s = seconds % 60
-        if (h > 0)
-            return pad(h) + ":" + pad(m) + ":" + pad(s)
-        return pad(m) + ":" + pad(s)
-    }
-    function pad(n) { return n < 10 ? "0" + n : "" + n }
-    function fileSizeLabel(path) {
-        // QML can't stat files, just show a placeholder
-        return path.split("/").pop().replace("dashcam_", "").replace(".mkv","").replace("_"," ")
     }
 }

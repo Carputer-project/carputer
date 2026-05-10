@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <cstring>
 
-Q_LOGGING_CATEGORY(lcRemote, "godseye.remote")
+Q_LOGGING_CATEGORY(lcRemote, "carputer.remote")
 
 // ── Key map: ESP32 serial byte → Linux key code ───────────────────────────────
 const RemoteManager::KeyEntry RemoteManager::KEY_MAP[] = {
@@ -83,7 +83,7 @@ void RemoteManager::setupUinput()
     usetup.id.bustype = BUS_USB;
     usetup.id.vendor  = 0x1234;
     usetup.id.product = 0x5678;
-    strncpy(usetup.name, "godseye-remote", UINPUT_MAX_NAME_SIZE - 1);
+    strncpy(usetup.name, "carputer-remote", UINPUT_MAX_NAME_SIZE - 1);
 
     if (ioctl(m_uinputFd, UI_DEV_SETUP, &usetup) < 0 ||
         ioctl(m_uinputFd, UI_DEV_CREATE) < 0) {

@@ -200,12 +200,11 @@ Item {
                     Slider {
                         id: volumeSlider
                         Layout.fillWidth: true
-                        from: 0; to: 100; value: 50
-                        onValueChanged: {
-                            if (pressed && mediaManager) mediaManager.setVolume(value / 100.0)
-                        }
+                        from: 0; to: 100
+                        value: mediaManager ? mediaManager.volume : 80
+                        onMoved: mediaManager.setVolume(Math.round(value))
                     }
-                    Text { text: Math.round(volumeSlider.value) + "%"; color: themeManager.textSecondary; font.pixelSize: 12; Layout.minimumWidth: 40 }
+                    Text { text: mediaManager.volume + "%"; color: themeManager.textSecondary; font.pixelSize: 12; Layout.minimumWidth: 40 }
                 }
                 // Car Controller Section
                 Rectangle {
@@ -290,6 +289,168 @@ Item {
                         }
                     }
                 }
+                // Install OS Section
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: installColumn.implicitHeight + 20
+                    color: themeManager.bgCard
+                    radius: 8
+                    Column {
+                        id: installColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 10
+                        spacing: 8
+
+                        property string selectedDisk: ""
+
+                        Text {
+                            text: "Install OS to Disk"
+                            color: themeManager.carBlue
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        Row {
+                            spacing: 10
+                            Button {
+                                text: "Scan Disks"
+                                onClicked: installManager.scanDisks()
+                            }
+                            Button {
+                                text: installColumn.selectedDisk
+                                       ? ("Install to " + installColumn.selectedDisk)
+                                       : "Install"
+                                enabled: installColumn.selectedDisk !== "" && !installManager.busy
+                                onClicked: confirmDialog.open()
+                            }
+                        }
+
+                        ListView {
+                            height: Math.min(200, contentHeight)
+                            width: parent.width
+                            model: installManager.disks
+                            visible: installManager.disks.length > 0
+
+                            delegate: Rectangle {
+                                width: parent.width
+                                height: 50
+                                color: installColumn.selectedDisk === modelData.device
+                                       ? themeManager.carBlueDim : "transparent"
+                                radius: 4
+                                border.color: installColumn.selectedDisk === modelData.device
+                                              ? themeManager.carBlue : "transparent"
+                                border.width: installColumn.selectedDisk === modelData.device ? 2 : 0
+
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: modelData.device
+                                          + "  " + modelData.size
+                                          + "  " + modelData.model
+                                    color: themeManager.textPrimary
+                                    font.pixelSize: 13
+                                    elide: Text.ElideRight
+                                    width: parent.width - 20
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: installColumn.selectedDisk = modelData.device
+                                }
+                            }
+                        }
+
+                        Text {
+                            visible: installManager.disks.length === 0
+                            text: "No disks found. Tap 'Scan Disks'."
+                            color: themeManager.textSecondary
+                            font.pixelSize: 14
+                        }
+
+                        Rectangle {
+                            visible: installManager.busy
+                            width: parent.width
+                            height: 50
+                            color: "transparent"
+                            Column {
+                                spacing: 4
+                                ProgressBar {
+                                    value: installManager.progress / 100
+                                    width: installColumn.width - 20
+                                }
+                                Text {
+                                    text: installManager.progress
+                                          + "% - " + installManager.statusText
+                                    color: themeManager.textSecondary
+                                    font.pixelSize: 12
+                                }
+                            }
+                        }
+                    }
+                }
+                // Updates Section
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: updateColumn.implicitHeight + 20
+                    color: themeManager.bgCard
+                    radius: 8
+                    Column {
+                        id: updateColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 10
+                        spacing: 8
+                        Text {
+                            text: "Updates"
+                            color: themeManager.carBlue
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+                        Text {
+                            text: "Current: " + (updateManager ? updateManager.currentVersion : "unknown")
+                            color: themeManager.textSecondary
+                            font.pixelSize: 14
+                        }
+                        Text {
+                            text: "Latest: " + (updateManager && updateManager.serverVersion ? updateManager.serverVersion : "\u2014")
+                            color: updateManager && updateManager.updateAvailable ? themeManager.statusGreen : themeManager.textSecondary
+                            font.pixelSize: 14
+                        }
+                        Row {
+                            spacing: 10
+                            Button {
+                                text: updateManager && updateManager.busy ? "Checking..." : "Check for Updates"
+                                enabled: updateManager && !updateManager.busy
+                                onClicked: updateManager.checkForUpdate()
+                            }
+                            Button {
+                                text: "Download & Install"
+                                visible: updateManager && updateManager.updateAvailable && !updateManager.busy
+                                onClicked: updateManager.applyNetworkUpdate()
+                            }
+                        }
+                        Rectangle {
+                            visible: updateManager && updateManager.busy
+                            width: parent.width
+                            height: 50
+                            color: "transparent"
+                            Column {
+                                spacing: 4
+                                ProgressBar {
+                                    value: updateManager ? updateManager.progress / 100 : 0
+                                    width: updateColumn.width - 20
+                                }
+                                Text {
+                                    text: updateManager ? updateManager.status : ""
+                                    color: themeManager.textSecondary
+                                    font.pixelSize: 12
+                                }
+                            }
+                        }
+                    }
+                }
                 // Version info
                 Text {
                     Layout.alignment: Qt.AlignHCenter
@@ -297,6 +458,150 @@ Item {
                     color: themeManager.textSecondary
                     font.pixelSize: 12
                 }
+            }
+        }
+
+        // Confirmation Dialog
+        Dialog {
+            id: confirmDialog
+            modal: true
+            standardButtons: Dialog.NoButton
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
+            Column {
+                spacing: 12
+                Text {
+                    text: "WARNING: Destructive Operation"
+                    color: themeManager.statusRed
+                    font.pixelSize: 18
+                    font.bold: true
+                }
+                Text {
+                    text: "Installing to " + installColumn.selectedDisk
+                          + " will ERASE ALL DATA on that disk.\n\n"
+                          + "This cannot be undone. Continue?"
+                    color: themeManager.textPrimary
+                    font.pixelSize: 14
+                    width: 400
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    spacing: 10
+                    Button {
+                        text: "Cancel"
+                        onClicked: confirmDialog.close()
+                    }
+                    Button {
+                        text: "Proceed with Installation"
+                        onClicked: {
+                            confirmDialog.close()
+                            installManager.installToDisk(installColumn.selectedDisk)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Result Dialog
+        Dialog {
+            id: resultDialog
+            modal: true
+            standardButtons: Dialog.NoButton
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
+
+            property bool success: false
+            property string resultMessage: ""
+
+            Column {
+                spacing: 12
+                Text {
+                    text: resultDialog.success
+                          ? "Installation Complete!"
+                          : "Installation Failed"
+                    color: resultDialog.success
+                           ? themeManager.statusGreen
+                           : themeManager.statusRed
+                    font.pixelSize: 18
+                    font.bold: true
+                }
+                Text {
+                    text: resultDialog.resultMessage
+                    color: themeManager.textPrimary
+                    font.pixelSize: 14
+                    width: 400
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    spacing: 10
+                    Button {
+                        text: "Later"
+                        onClicked: resultDialog.close()
+                    }
+                    Button {
+                        visible: resultDialog.success
+                        text: "Reboot Now"
+                        onClicked: installManager.rebootNow()
+                    }
+                }
+            }
+        }
+
+        Connections {
+            target: installManager
+            onInstallComplete: {
+                resultDialog.success = success
+                resultDialog.resultMessage = message
+                resultDialog.open()
+            }
+        }
+
+        // Update Result Dialog
+        Dialog {
+            id: updateResultDialog
+            modal: true
+            standardButtons: Dialog.NoButton
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
+
+            property bool success: false
+            property string resultMessage: ""
+
+            Column {
+                spacing: 12
+                Text {
+                    text: updateResultDialog.success
+                          ? "Update Complete!"
+                          : "Update Failed"
+                    color: updateResultDialog.success
+                           ? themeManager.statusGreen
+                           : themeManager.statusRed
+                    font.pixelSize: 18
+                    font.bold: true
+                }
+                Text {
+                    text: updateResultDialog.resultMessage
+                    color: themeManager.textPrimary
+                    font.pixelSize: 14
+                    width: 400
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    spacing: 10
+                    Button {
+                        text: "OK"
+                        onClicked: updateResultDialog.close()
+                    }
+                }
+            }
+        }
+
+        Connections {
+            target: updateManager
+            onUpdateComplete: {
+                updateResultDialog.success = success
+                updateResultDialog.resultMessage = message
+                updateResultDialog.open()
             }
         }
     }

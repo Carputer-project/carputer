@@ -61,6 +61,7 @@ SOURCES       = main.cpp \
 		updatemanager.cpp \
 		mediamanager.cpp \
 		artworkprovider.cpp \
+		videoframeprovider.cpp \
 		dvrmanager.cpp \
 		carplaymanager.cpp \
 		carcontrolmanager.cpp \
@@ -68,7 +69,8 @@ SOURCES       = main.cpp \
 		sensormanager.cpp \
 		audiomanager.cpp \
 		internalwifimanager.cpp \
-		debugmanager.cpp qrc_qml.cpp \
+		debugmanager.cpp \
+		installmanager.cpp qrc_qml.cpp \
 		moc_systemmanager.cpp \
 		moc_configmanager.cpp \
 		moc_thememanager.cpp \
@@ -83,7 +85,8 @@ SOURCES       = main.cpp \
 		moc_sensormanager.cpp \
 		moc_audiomanager.cpp \
 		moc_internalwifimanager.cpp \
-		moc_debugmanager.cpp
+		moc_debugmanager.cpp \
+		moc_installmanager.cpp
 OBJECTS       = main.o \
 		systemmanager.o \
 		configmanager.o \
@@ -93,6 +96,7 @@ OBJECTS       = main.o \
 		updatemanager.o \
 		mediamanager.o \
 		artworkprovider.o \
+		videoframeprovider.o \
 		dvrmanager.o \
 		carplaymanager.o \
 		carcontrolmanager.o \
@@ -101,6 +105,7 @@ OBJECTS       = main.o \
 		audiomanager.o \
 		internalwifimanager.o \
 		debugmanager.o \
+		installmanager.o \
 		qrc_qml.o \
 		moc_systemmanager.o \
 		moc_configmanager.o \
@@ -116,7 +121,8 @@ OBJECTS       = main.o \
 		moc_sensormanager.o \
 		moc_audiomanager.o \
 		moc_internalwifimanager.o \
-		moc_debugmanager.o
+		moc_debugmanager.o \
+		moc_installmanager.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/unix.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/linux.conf \
@@ -213,6 +219,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		updatemanager.h \
 		mediamanager.h \
 		artworkprovider.h \
+		videoframeprovider.h \
 		dvrmanager.h \
 		carplaymanager.h \
 		carcontrolmanager.h \
@@ -220,7 +227,8 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		sensormanager.h \
 		audiomanager.h \
 		internalwifimanager.h \
-		debugmanager.h main.cpp \
+		debugmanager.h \
+		installmanager.h main.cpp \
 		systemmanager.cpp \
 		configmanager.cpp \
 		thememanager.cpp \
@@ -229,6 +237,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		updatemanager.cpp \
 		mediamanager.cpp \
 		artworkprovider.cpp \
+		videoframeprovider.cpp \
 		dvrmanager.cpp \
 		carplaymanager.cpp \
 		carcontrolmanager.cpp \
@@ -236,7 +245,8 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		sensormanager.cpp \
 		audiomanager.cpp \
 		internalwifimanager.cpp \
-		debugmanager.cpp
+		debugmanager.cpp \
+		installmanager.cpp
 QMAKE_TARGET  = carputer
 DESTDIR       = 
 TARGET        = carputer
@@ -445,8 +455,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents qml.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents systemmanager.h configmanager.h thememanager.h diagnosticmanager.h remotemanager.h updatemanager.h mediamanager.h artworkprovider.h dvrmanager.h carplaymanager.h carcontrolmanager.h cameramanager.h sensormanager.h audiomanager.h internalwifimanager.h debugmanager.h $(DISTDIR)/
-	$(COPY_FILE) --parents main.cpp systemmanager.cpp configmanager.cpp thememanager.cpp diagnosticmanager.cpp remotemanager.cpp updatemanager.cpp mediamanager.cpp artworkprovider.cpp dvrmanager.cpp carplaymanager.cpp carcontrolmanager.cpp cameramanager.cpp sensormanager.cpp audiomanager.cpp internalwifimanager.cpp debugmanager.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents systemmanager.h configmanager.h thememanager.h diagnosticmanager.h remotemanager.h updatemanager.h mediamanager.h artworkprovider.h videoframeprovider.h dvrmanager.h carplaymanager.h carcontrolmanager.h cameramanager.h sensormanager.h audiomanager.h internalwifimanager.h debugmanager.h installmanager.h $(DISTDIR)/
+	$(COPY_FILE) --parents main.cpp systemmanager.cpp configmanager.cpp thememanager.cpp diagnosticmanager.cpp remotemanager.cpp updatemanager.cpp mediamanager.cpp artworkprovider.cpp videoframeprovider.cpp dvrmanager.cpp carplaymanager.cpp carcontrolmanager.cpp cameramanager.cpp sensormanager.cpp audiomanager.cpp internalwifimanager.cpp debugmanager.cpp installmanager.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -492,9 +502,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++1z -pthread -pthread -pthread -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_systemmanager.cpp moc_configmanager.cpp moc_thememanager.cpp moc_diagnosticmanager.cpp moc_remotemanager.cpp moc_updatemanager.cpp moc_mediamanager.cpp moc_dvrmanager.cpp moc_carplaymanager.cpp moc_carcontrolmanager.cpp moc_cameramanager.cpp moc_sensormanager.cpp moc_audiomanager.cpp moc_internalwifimanager.cpp moc_debugmanager.cpp
+compiler_moc_header_make_all: moc_systemmanager.cpp moc_configmanager.cpp moc_thememanager.cpp moc_diagnosticmanager.cpp moc_remotemanager.cpp moc_updatemanager.cpp moc_mediamanager.cpp moc_dvrmanager.cpp moc_carplaymanager.cpp moc_carcontrolmanager.cpp moc_cameramanager.cpp moc_sensormanager.cpp moc_audiomanager.cpp moc_internalwifimanager.cpp moc_debugmanager.cpp moc_installmanager.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_systemmanager.cpp moc_configmanager.cpp moc_thememanager.cpp moc_diagnosticmanager.cpp moc_remotemanager.cpp moc_updatemanager.cpp moc_mediamanager.cpp moc_dvrmanager.cpp moc_carplaymanager.cpp moc_carcontrolmanager.cpp moc_cameramanager.cpp moc_sensormanager.cpp moc_audiomanager.cpp moc_internalwifimanager.cpp moc_debugmanager.cpp
+	-$(DEL_FILE) moc_systemmanager.cpp moc_configmanager.cpp moc_thememanager.cpp moc_diagnosticmanager.cpp moc_remotemanager.cpp moc_updatemanager.cpp moc_mediamanager.cpp moc_dvrmanager.cpp moc_carplaymanager.cpp moc_carcontrolmanager.cpp moc_cameramanager.cpp moc_sensormanager.cpp moc_audiomanager.cpp moc_internalwifimanager.cpp moc_debugmanager.cpp moc_installmanager.cpp
 moc_systemmanager.cpp: systemmanager.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
@@ -570,6 +580,11 @@ moc_debugmanager.cpp: debugmanager.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/devkid/Desktop/carputer/carputer/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/devkid/Desktop/carputer/carputer -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/x86_64-linux-gnu -I/usr/include/orc-0.4 -I/usr/include/x86_64-linux-gnu/qt5/QtGui/5.15.13 -I/usr/include/x86_64-linux-gnu/qt5/QtGui/5.15.13/QtGui -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtQuick -I/usr/include/x86_64-linux-gnu/qt5/QtMultimedia -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore/5.15.13 -I/usr/include/x86_64-linux-gnu/qt5/QtCore/5.15.13/QtCore -I/usr/include/x86_64-linux-gnu/qt5/QtQmlModels -I/usr/include/x86_64-linux-gnu/qt5/QtQml -I/usr/include/x86_64-linux-gnu/qt5/QtNetwork -I/usr/include/x86_64-linux-gnu/qt5/QtSerialPort -I/usr/include/x86_64-linux-gnu/qt5/QtConcurrent -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include debugmanager.h -o moc_debugmanager.cpp
 
+moc_installmanager.cpp: installmanager.h \
+		moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/devkid/Desktop/carputer/carputer/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/devkid/Desktop/carputer/carputer -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/x86_64-linux-gnu -I/usr/include/orc-0.4 -I/usr/include/x86_64-linux-gnu/qt5/QtGui/5.15.13 -I/usr/include/x86_64-linux-gnu/qt5/QtGui/5.15.13/QtGui -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtQuick -I/usr/include/x86_64-linux-gnu/qt5/QtMultimedia -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore/5.15.13 -I/usr/include/x86_64-linux-gnu/qt5/QtCore/5.15.13/QtCore -I/usr/include/x86_64-linux-gnu/qt5/QtQmlModels -I/usr/include/x86_64-linux-gnu/qt5/QtQml -I/usr/include/x86_64-linux-gnu/qt5/QtNetwork -I/usr/include/x86_64-linux-gnu/qt5/QtSerialPort -I/usr/include/x86_64-linux-gnu/qt5/QtConcurrent -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include installmanager.h -o moc_installmanager.cpp
+
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
 compiler_moc_source_make_all:
@@ -592,6 +607,7 @@ main.o: main.cpp systemmanager.h \
 		updatemanager.h \
 		mediamanager.h \
 		artworkprovider.h \
+		videoframeprovider.h \
 		dvrmanager.h \
 		carplaymanager.h \
 		carcontrolmanager.h \
@@ -599,7 +615,8 @@ main.o: main.cpp systemmanager.h \
 		audiomanager.h \
 		sensormanager.h \
 		internalwifimanager.h \
-		debugmanager.h
+		debugmanager.h \
+		installmanager.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
 systemmanager.o: systemmanager.cpp systemmanager.h
@@ -627,7 +644,11 @@ mediamanager.o: mediamanager.cpp mediamanager.h \
 artworkprovider.o: artworkprovider.cpp artworkprovider.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o artworkprovider.o artworkprovider.cpp
 
-dvrmanager.o: dvrmanager.cpp dvrmanager.h
+videoframeprovider.o: videoframeprovider.cpp videoframeprovider.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o videoframeprovider.o videoframeprovider.cpp
+
+dvrmanager.o: dvrmanager.cpp dvrmanager.h \
+		videoframeprovider.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dvrmanager.o dvrmanager.cpp
 
 carplaymanager.o: carplaymanager.cpp carplaymanager.h
@@ -636,7 +657,8 @@ carplaymanager.o: carplaymanager.cpp carplaymanager.h
 carcontrolmanager.o: carcontrolmanager.cpp carcontrolmanager.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o carcontrolmanager.o carcontrolmanager.cpp
 
-cameramanager.o: cameramanager.cpp cameramanager.h
+cameramanager.o: cameramanager.cpp cameramanager.h \
+		videoframeprovider.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o cameramanager.o cameramanager.cpp
 
 sensormanager.o: sensormanager.cpp sensormanager.h
@@ -657,6 +679,9 @@ debugmanager.o: debugmanager.cpp debugmanager.h \
 		cameramanager.h \
 		audiomanager.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debugmanager.o debugmanager.cpp
+
+installmanager.o: installmanager.cpp installmanager.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o installmanager.o installmanager.cpp
 
 qrc_qml.o: qrc_qml.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_qml.o qrc_qml.cpp
@@ -705,6 +730,9 @@ moc_internalwifimanager.o: moc_internalwifimanager.cpp
 
 moc_debugmanager.o: moc_debugmanager.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_debugmanager.o moc_debugmanager.cpp
+
+moc_installmanager.o: moc_installmanager.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_installmanager.o moc_installmanager.cpp
 
 ####### Install
 

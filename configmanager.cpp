@@ -6,7 +6,7 @@
 ConfigManager::ConfigManager(QObject *parent)
     : QObject(parent)
     , m_settings(QSettings::IniFormat, QSettings::UserScope,
-                 "openipc", "godseye")
+                 "carputer", "carputer")
     , m_dvrDirectory(QDir::homePath() + "/dvr_recordings")
 {
     // Ensure config directory exists

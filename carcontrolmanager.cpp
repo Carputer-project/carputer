@@ -14,6 +14,8 @@ CarControlManager::CarControlManager(QObject *parent)
             this, &CarControlManager::onDisconnected);
     connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred),
             this, &CarControlManager::onError);
+    connect(m_socket, &QTcpSocket::readyRead,
+            this, &CarControlManager::onReadyRead);
 
     m_retryTimer = new QTimer(this);
     m_retryTimer->setInterval(3000);
@@ -130,6 +132,12 @@ void CarControlManager::parseStatus(const QString &line)
                 m_remoteStartActive = newValue;
                 emit remoteStartActiveChanged();
             }
+        } else if (part.startsWith("F:")) {
+            int newValue = part.mid(2).toInt();
+            if (m_fanRelay != newValue) {
+                m_fanRelay = newValue;
+                emit fanRelayChanged();
+            }
         }
     }
 }
@@ -144,7 +152,7 @@ void CarControlManager::sendCommand(char cmd, uint8_t value)
 
     QByteArray data;
     data.append(cmd);
-    data.append(static_cast<char>(value));
+    data.append(QByteArray::number(value));
     data.append('\n');  // Newline for text protocol
     m_socket->write(data);
     qCDebug(lcCarControl) << "Sent command:" << cmd << "value:" << value;
@@ -195,6 +203,19 @@ void CarControlManager::startRemote()
 void CarControlManager::stopRemote()
 {
     sendCommand('R', 0);
+}
+
+void CarControlManager::setFanRelay(int level)
+{
+    if (level < 0) level = 0;
+    if (level > 2) level = 2;
+    qCWarning(lcCarControl) << "setFanRelay called with level:" << level << "current m_fanRelay:" << m_fanRelay;
+    if (m_fanRelay != level) {
+        m_fanRelay = level;
+        emit fanRelayChanged();
+        qCWarning(lcCarControl) << "fanRelayChanged emitted, new value:" << m_fanRelay;
+    }
+    sendCommand('F', static_cast<uint8_t>(level));
 }
 
 void CarControlManager::queryStatus()

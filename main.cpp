@@ -18,6 +18,7 @@
 #include "updatemanager.h"
 #include "mediamanager.h"
 #include "artworkprovider.h"
+#include "videoframeprovider.h"
 #include "dvrmanager.h"
 #include "carplaymanager.h"
 #include "carcontrolmanager.h"
@@ -26,6 +27,7 @@
 #include "sensormanager.h"
 #include "internalwifimanager.h"
 #include "debugmanager.h"
+#include "installmanager.h"
 
 static QQmlDebuggingEnabler s_qmlDebuggingEnabler;
 
@@ -112,7 +114,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mediaManager", &mediaManager);
     engine.addImageProvider(QStringLiteral("artwork"), mediaManager.artworkProvider());
 
+    VideoFrameProvider videoFrameProvider;
+    engine.addImageProvider(QStringLiteral("video"), &videoFrameProvider);
+
     DvrManager dvrManager;
+    dvrManager.setVideoFrameProvider(&videoFrameProvider);
     engine.rootContext()->setContextProperty("dvrManager", &dvrManager);
 
     CarPlayManager carPlayManager;
@@ -125,10 +131,12 @@ int main(int argc, char *argv[])
         carControlManager.setPort(configManager.carControlPort());
 
     CameraManager cameraManager;
+    cameraManager.setVideoFrameProvider(&videoFrameProvider);
     engine.rootContext()->setContextProperty("cameraManager", &cameraManager);
 
     AudioManager audioManager;
     engine.rootContext()->setContextProperty("audioManager", &audioManager);
+    audioManager.setMediaManager(&mediaManager);
 
     SensorManager sensorManager;
     engine.rootContext()->setContextProperty("sensorManager", &sensorManager);
@@ -138,6 +146,9 @@ int main(int argc, char *argv[])
 
     DebugManager debugManager;
     engine.rootContext()->setContextProperty("debugManager", &debugManager);
+
+    InstallManager installManager;
+    engine.rootContext()->setContextProperty("installManager", &installManager);
     // Link managers to debug manager
     debugManager.setSensorManager(&sensorManager);
     debugManager.setCarControlManager(&carControlManager);
@@ -145,6 +156,24 @@ int main(int argc, char *argv[])
     debugManager.setMediaManager(&mediaManager);
     debugManager.setCameraManager(&cameraManager);
     debugManager.setAudioManager(&audioManager);
+
+    // ── Auto cooling fan control ────────────────────────────────────────────
+    QObject::connect(&sensorManager, &SensorManager::coolantTempChanged,
+                     [&sensorManager, &carControlManager]() {
+        if (!carControlManager.connected()) return;
+
+        int temp     = sensorManager.coolantTemp();
+        int current  = carControlManager.fanRelay();
+        int newLevel = current;
+
+        if      (temp >= 203)                    newLevel = 2;
+        else if (temp >= 185 && current < 1)     newLevel = 1;
+        else if (temp < 179  && current >= 1)    newLevel = 0;
+        else if (temp < 198  && current == 2)    newLevel = 1;
+
+        if (newLevel != current)
+            carControlManager.setFanRelay(newLevel);
+    });
 
     QScreen *screen = app.primaryScreen();
     engine.rootContext()->setContextProperty("screenWidth",  screen->size().width());
