@@ -98,7 +98,7 @@ Window {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: modelData.icon
                                 color: root.activePage === modelData.page ? themeManager.carBlue : themeManager.textSecondary
-                                font.pixelSize: root.activePage === modelData.page ? 28 : 24
+                                font.pixelSize: 26
                                 opacity: root.hoveredNavPage === modelData.page || root.activePage === modelData.page ? 1.0 : 0.85
                             }
                             Text {
@@ -115,7 +115,7 @@ Window {
                             anchors.fill: parent
                             hoverEnabled: true
                             onEntered: root.hoveredNavPage = modelData.page
-                            onExited: if (root.hoveredNavPage === modelData.page) root.hoveredNavPage = -1
+                            onExited: root.hoveredNavPage = -1
                             onClicked: root.activePage = modelData.page
                         }
                     }
