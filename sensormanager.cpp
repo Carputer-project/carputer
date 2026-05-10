@@ -40,7 +40,7 @@ void SensorManager::reconnect()
     setStatusText("Rebinding UDP socket...");
     m_socket.close();
     if (m_socket.bind(QHostAddress::Any, 5001, QUdpSocket::ShareAddress)) {
-        setConnected(true);
+        setConnected(false);  // true only after first received datagram
         setStatusText("Listening for sensor data on UDP 5001");
     } else {
         setStatusText("Failed to rebind UDP socket");

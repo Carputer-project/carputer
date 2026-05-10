@@ -327,6 +327,8 @@ void ConfigManager::save()
     m_settings.setValue("display/batteryWarnVolts", m_batteryWarnVolts);
     m_settings.setValue("serial/remotePort",        m_remotePort);
     m_settings.setValue("serial/carControlPort",    m_carControlPort);
+    m_settings.setValue("audio/sink",               m_audioSink);
+    m_settings.setValue("audio/source",             m_audioSource);
     m_settings.setValue("ui/theme",                m_theme);
     m_settings.setValue("ui/accentColor",          m_accentColor);
     m_settings.sync();
@@ -363,6 +365,10 @@ void ConfigManager::reload()
     m_batteryWarnVolts = qBound(0.0, m_settings.value("display/batteryWarnVolts", 10.5).toDouble(), 20.0);
     m_remotePort       = m_settings.value("serial/remotePort", "").toString().trimmed();
     m_carControlPort   = m_settings.value("serial/carControlPort", "").toString().trimmed();
+    m_audioSink        = m_settings.value("audio/sink", "default").toString().trimmed();
+    if (m_audioSink.isEmpty())
+        m_audioSink = QStringLiteral("default");
+    m_audioSource      = qBound(0, m_settings.value("audio/source", 0).toInt(), 2);
 
     // Climate / HVAC
     m_targetTemp    = qBound(60, m_settings.value("climate/targetTemp", 72).toInt(), 85);
@@ -397,6 +403,8 @@ void ConfigManager::reload()
     emit batteryWarnVoltsChanged();
     emit remotePortChanged();
     emit carControlPortChanged();
+    emit audioSinkChanged();
+    emit audioSourceChanged();
 
     // Climate / HVAC
     emit targetTempChanged();

@@ -7,7 +7,7 @@ Item {
     focus: true
 
     property int fanSpeed: carControlManager ? carControlManager.fanSpeed : 0
-    property bool hvacOn: configManager.hvacEnabled
+    property bool hvacOn: carControlManager ? carControlManager.hvacEnabled : configManager.hvacEnabled
     property bool acOn: configManager.acEnabled
     property bool doorsLocked: carControlManager ? carControlManager.doorsLocked : false
     property bool remoteStartActive: carControlManager ? carControlManager.remoteStartActive : false

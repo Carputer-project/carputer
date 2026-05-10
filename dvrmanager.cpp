@@ -507,7 +507,7 @@ void DvrManager::scanRecordings()
     while (it.hasNext()) {
         const QString path = it.next();
         if (exts.contains(QFileInfo(path).suffix().toLower()))
-            found.prepend(path);
+            found.append(path);
     }
     found.sort();
     std::reverse(found.begin(), found.end());

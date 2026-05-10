@@ -12,6 +12,8 @@ CarControlManager::CarControlManager(QObject *parent)
             this, &CarControlManager::onConnected);
     connect(m_socket, &QTcpSocket::disconnected,
             this, &CarControlManager::onDisconnected);
+    connect(m_socket, &QTcpSocket::readyRead,
+            this, &CarControlManager::onReadyRead);
     connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred),
             this, &CarControlManager::onError);
     connect(m_socket, &QTcpSocket::readyRead,
