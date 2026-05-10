@@ -77,6 +77,7 @@ Window {
                          { icon: "⚙", label: "SETUP",   page: 5 }
                     ]
                         Rectangle {
+                        id: navItem
                         width: bottomBar.width / navRepeater.count
                         height: bottomBar.height
                         property bool highlighted: root.hoveredNavPage === modelData.page || root.activePage === modelData.page
@@ -100,7 +101,7 @@ Window {
                                 text: modelData.icon
                                 color: root.activePage === modelData.page ? themeManager.carBlue : themeManager.textSecondary
                                 font.pixelSize: 26
-                                opacity: parent.parent.highlighted ? 1.0 : 0.85
+                                opacity: navItem.highlighted ? 1.0 : 0.85
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -109,7 +110,7 @@ Window {
                                 font.pixelSize: 12
                                 font.bold: root.activePage === modelData.page
                                 font.family: themeManager.fontFamily
-                                opacity: parent.parent.highlighted ? 1.0 : 0.9
+                                opacity: navItem.highlighted ? 1.0 : 0.9
                             }
                         }
                         MouseArea {
