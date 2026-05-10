@@ -79,6 +79,7 @@ Window {
                         Rectangle {
                         width: bottomBar.width / navRepeater.count
                         height: bottomBar.height
+                        property bool highlighted: root.hoveredNavPage === modelData.page || root.activePage === modelData.page
                         color: root.activePage === modelData.page
                                ? Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.18)
                                : root.hoveredNavPage === modelData.page
@@ -99,7 +100,7 @@ Window {
                                 text: modelData.icon
                                 color: root.activePage === modelData.page ? themeManager.carBlue : themeManager.textSecondary
                                 font.pixelSize: 26
-                                opacity: root.hoveredNavPage === modelData.page || root.activePage === modelData.page ? 1.0 : 0.85
+                                opacity: parent.parent.highlighted ? 1.0 : 0.85
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -108,7 +109,7 @@ Window {
                                 font.pixelSize: 12
                                 font.bold: root.activePage === modelData.page
                                 font.family: themeManager.fontFamily
-                                opacity: root.hoveredNavPage === modelData.page || root.activePage === modelData.page ? 1.0 : 0.9
+                                opacity: parent.parent.highlighted ? 1.0 : 0.9
                             }
                         }
                         MouseArea {

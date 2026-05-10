@@ -677,15 +677,11 @@ Item {
                 Rectangle {
                     Layout.preferredWidth: 130; Layout.fillHeight: true
                     color: remoteStartActive ? "#331100" : themeManager.bgDark
-                    radius: 6; border.color: remoteStartActive ? themeManager.carOrange : "transparent"
-                    border.width: remoteStartActive ? 1 : 0
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
-                        color: "transparent"
-                        border.width: remoteStartActive ? 0 : 1
-                        border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.18)
-                    }
+                    radius: 6
+                    border.width: 1
+                    border.color: remoteStartActive
+                                  ? themeManager.carOrange
+                                  : Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.18)
                     ColumnLayout {
                         anchors.centerIn: parent; spacing: 2
                         Text {
