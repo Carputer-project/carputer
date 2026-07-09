@@ -1,0 +1,83 @@
+{
+  "engine": {
+    "code": "K20A",
+    "name": "2.0L DOHC i-VTEC (K20A)",
+    "displacement_cc": 1998,
+    "compression_ratio": 11.0
+  },
+  "limits": {
+    "rpm": {
+      "redline": 8000,
+      "fuel_cut": 8300,
+      "idle": 700,
+      "gauge_max": 9000
+    },
+    "coolant": {
+      "gauge_min": 100,
+      "gauge_max": 280,
+      "caution_f": 220,
+      "danger_f": 230,
+      "critical_f": 245,
+      "fan_on_low_f": 192,
+      "fan_off_low_f": 186,
+      "fan_on_high_f": 210,
+      "fan_off_high_f": 205,
+      "health_opt_f": 220,
+      "health_crit_f": 260
+    },
+    "oil_temp": {
+      "gauge_min": 100,
+      "gauge_max": 320,
+      "caution_f": 230,
+      "danger_f": 250,
+      "critical_f": 270,
+      "health_opt_f": 230,
+      "health_crit_f": 280
+    },
+    "oil_pressure": {
+      "gauge_min": 0,
+      "gauge_max": 100,
+      "caution": 40,
+      "danger": 20,
+      "critical": 10,
+      "health_opt": 40,
+      "health_crit": 0
+    },
+    "battery": {
+      "caution": 30,
+      "danger": 15,
+      "critical": 5,
+      "health_opt": 50,
+      "health_crit": 0
+    },
+    "speed": {
+      "gauge_max_mph": 160,
+      "warn_mph": 85,
+      "danger_mph": 110
+    },
+    "afr": {
+      "target_idle": 14.7,
+      "target_cruise": 14.7,
+      "target_wot": 12.3,
+      "stoich": 14.7,
+      "max_fuel_correction": 25.0,
+      "danger_lean": 16.5,
+      "danger_rich": 10.0
+    },
+    "shift_advice": {
+      "up_rpm": 6000,
+      "down_rpm": 2000
+    },
+    "engine_running_threshold": 100,
+    "injector_cc_min": 310,
+    "fuel_pressure_kpa": 380
+  },
+  "health_weights": {
+    "coolant": 0.30,
+    "oil_temp": 0.20,
+    "oil_pressure": 0.25,
+    "battery": 0.15,
+    "drive": 0.10
+  },
+  "gear_ratios": [105, 60, 40, 28]
+}

@@ -1,0 +1,20 @@
+# Build artifacts
+carputer
+Makefile
+*.o
+*.pro.user
+moc_*.cpp
+qrc_*.cpp
+*.a
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# QML cache
+*.qmlc
+*.jsc

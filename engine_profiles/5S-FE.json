@@ -1,0 +1,83 @@
+{
+  "engine": {
+    "code": "5S-FE",
+    "name": "2.2L DOHC 16V EFI (5S-FE)",
+    "displacement_cc": 2164,
+    "compression_ratio": 9.5
+  },
+  "limits": {
+    "rpm": {
+      "redline": 6000,
+      "fuel_cut": 7000,
+      "idle": 700,
+      "gauge_max": 7500
+    },
+    "coolant": {
+      "gauge_min": 100,
+      "gauge_max": 280,
+      "caution_f": 220,
+      "danger_f": 230,
+      "critical_f": 245,
+      "fan_on_low_f": 185,
+      "fan_off_low_f": 179,
+      "fan_on_high_f": 203,
+      "fan_off_high_f": 198,
+      "health_opt_f": 220,
+      "health_crit_f": 260
+    },
+    "oil_temp": {
+      "gauge_min": 100,
+      "gauge_max": 300,
+      "caution_f": 220,
+      "danger_f": 240,
+      "critical_f": 260,
+      "health_opt_f": 220,
+      "health_crit_f": 270
+    },
+    "oil_pressure": {
+      "gauge_min": 0,
+      "gauge_max": 100,
+      "caution": 40,
+      "danger": 20,
+      "critical": 10,
+      "health_opt": 40,
+      "health_crit": 0
+    },
+    "battery": {
+      "caution": 30,
+      "danger": 15,
+      "critical": 5,
+      "health_opt": 50,
+      "health_crit": 0
+    },
+    "speed": {
+      "gauge_max_mph": 120,
+      "warn_mph": 75,
+      "danger_mph": 90
+    },
+    "afr": {
+      "target_idle": 14.7,
+      "target_cruise": 14.7,
+      "target_wot": 12.5,
+      "stoich": 14.7,
+      "max_fuel_correction": 20.0,
+      "danger_lean": 16.0,
+      "danger_rich": 10.0
+    },
+    "shift_advice": {
+      "up_rpm": 3200,
+      "down_rpm": 1200
+    },
+    "engine_running_threshold": 100,
+    "injector_cc_min": 200,
+    "fuel_pressure_kpa": 284
+  },
+  "health_weights": {
+    "coolant": 0.30,
+    "oil_temp": 0.20,
+    "oil_pressure": 0.25,
+    "battery": 0.15,
+    "drive": 0.10
+  },
+  "gear_ratios": [110, 65, 42, 30]
+}

@@ -1,0 +1,83 @@
+{
+  "engine": {
+    "code": "B16A",
+    "name": "1.6L DOHC VTEC (B16A)",
+    "displacement_cc": 1595,
+    "compression_ratio": 10.2
+  },
+  "limits": {
+    "rpm": {
+      "redline": 8000,
+      "fuel_cut": 8200,
+      "idle": 750,
+      "gauge_max": 9000
+    },
+    "coolant": {
+      "gauge_min": 100,
+      "gauge_max": 280,
+      "caution_f": 215,
+      "danger_f": 225,
+      "critical_f": 240,
+      "fan_on_low_f": 190,
+      "fan_off_low_f": 184,
+      "fan_on_high_f": 208,
+      "fan_off_high_f": 203,
+      "health_opt_f": 215,
+      "health_crit_f": 255
+    },
+    "oil_temp": {
+      "gauge_min": 100,
+      "gauge_max": 320,
+      "caution_f": 230,
+      "danger_f": 250,
+      "critical_f": 270,
+      "health_opt_f": 230,
+      "health_crit_f": 280
+    },
+    "oil_pressure": {
+      "gauge_min": 0,
+      "gauge_max": 100,
+      "caution": 35,
+      "danger": 15,
+      "critical": 8,
+      "health_opt": 35,
+      "health_crit": 0
+    },
+    "battery": {
+      "caution": 30,
+      "danger": 15,
+      "critical": 5,
+      "health_opt": 50,
+      "health_crit": 0
+    },
+    "speed": {
+      "gauge_max_mph": 140,
+      "warn_mph": 80,
+      "danger_mph": 100
+    },
+    "afr": {
+      "target_idle": 14.7,
+      "target_cruise": 14.7,
+      "target_wot": 12.5,
+      "stoich": 14.7,
+      "max_fuel_correction": 25.0,
+      "danger_lean": 16.5,
+      "danger_rich": 10.0
+    },
+    "shift_advice": {
+      "up_rpm": 5500,
+      "down_rpm": 2000
+    },
+    "engine_running_threshold": 100,
+    "injector_cc_min": 240,
+    "fuel_pressure_kpa": 320
+  },
+  "health_weights": {
+    "coolant": 0.30,
+    "oil_temp": 0.20,
+    "oil_pressure": 0.25,
+    "battery": 0.15,
+    "drive": 0.10
+  },
+  "gear_ratios": [105, 60, 40, 28]
+}
