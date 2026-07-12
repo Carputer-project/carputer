@@ -12,6 +12,8 @@ Item {
     property int bass: carControlManager ? carControlManager.radioBass : 16
     property int treble: carControlManager ? carControlManager.radioTreble : 16
     property int mid: 16
+    property int fader: carControlManager ? carControlManager.radioFader : 0
+    property bool loudness: carControlManager ? carControlManager.radioLoudness : false
 
     Connections {
         target: carControlManager
@@ -22,6 +24,8 @@ Item {
             bass = carControlManager.radioBass
             treble = carControlManager.radioTreble
             mid = Math.max(treble - 3, 0)
+            fader = carControlManager.radioFader
+            loudness = carControlManager.radioLoudness
         }
     }
 
@@ -197,6 +201,42 @@ Item {
                     }
                 }
             }
+        }
+
+        // Fader + Loudness section
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 80
+            color: themeManager.bgCard
+            radius: 10
+            ColumnLayout {
+                anchors.fill: parent; anchors.margins: 12; spacing: 6
+                Text { text: "FADER"; color: themeManager.textSecondary; font.pixelSize: 11; font.bold: true }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+                    Text { text: "Rear"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                    Slider {
+                        Layout.fillWidth: true
+                        from: -15; to: 15; value: fader; stepSize: 1
+                        onMoved: carControlManager.setRadioFader(value)
+                    }
+                    Text { text: "Front"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                }
+                Text {
+                    text: fader === 0 ? "Center" : (fader < 0 ? (-fader) + " dB Rear" : fader + " dB Front")
+                    color: themeManager.carBlue; font.pixelSize: 14; font.bold: true
+                    horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
+                }
+            }
+        }
+
+        Button {
+            Layout.fillWidth: true; Layout.preferredHeight: 40
+            text: loudness ? "LOUDNESS: ON" : "LOUDNESS: OFF"
+            font.pixelSize: 12
+            highlighted: loudness
+            palette.button: loudness ? themeManager.carOrange : themeManager.bgPanel
+            onClicked: carControlManager.setRadioLoudness(!loudness)
         }
 
         // Connection status

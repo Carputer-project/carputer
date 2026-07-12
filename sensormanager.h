@@ -45,6 +45,9 @@ class SensorManager : public QObject
     Q_PROPERTY(double targetAFR READ targetAFR NOTIFY targetAFRChanged)
     Q_PROPERTY(double fuelCorrection READ fuelCorrection NOTIFY fuelCorrectionChanged)
 
+    // Narrowband O2 (direct from sensor module)
+    Q_PROPERTY(double o2AFR READ o2AFR NOTIFY o2AFRChanged)
+
 public:
     explicit SensorManager(QObject *parent = nullptr);
     ~SensorManager() override;
@@ -79,6 +82,9 @@ public:
     double targetAFR() const { return m_targetAFR; }
     double fuelCorrection() const { return m_fuelCorrection; }
 
+    // Narrowband O2
+    double o2AFR() const { return m_o2AFR; }
+
 public slots:
     void reconnect();
 
@@ -110,6 +116,9 @@ signals:
     void wboLambdaChanged();
     void targetAFRChanged();
     void fuelCorrectionChanged();
+
+    // Narrowband O2
+    void o2AFRChanged();
 
 private slots:
     void onReadyRead();
@@ -150,6 +159,9 @@ private:
     double m_wboLambda = 1.0;
     double m_targetAFR = 14.7;
     double m_fuelCorrection = 0.0;
+
+    // Narrowband O2
+    double m_o2AFR = 0.0;
 
     QByteArray m_buffer;
 };

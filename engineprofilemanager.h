@@ -87,8 +87,17 @@ class EngineProfileManager : public QObject
     Q_PROPERTY(double healthWeightBattery    READ healthWeightBattery    NOTIFY profileChanged)
     Q_PROPERTY(double healthWeightDrive      READ healthWeightDrive      NOTIFY profileChanged)
 
-    // Gear ratios
+    // Gear ratios (raw from profile — use effectiveGearRatios for detection)
     Q_PROPERTY(QVariantList gearRatios READ gearRatios NOTIFY profileChanged)
+
+    // Drivetrain (computed from profile + user overrides)
+    Q_PROPERTY(double tireCircumferenceM READ tireCircumferenceM NOTIFY profileChanged)
+    Q_PROPERTY(double finalDrive         READ finalDrive         NOTIFY profileChanged)
+
+    // User tire overrides (persisted in drivetrain.conf, default to profile values)
+    Q_PROPERTY(int userTireWidth        READ userTireWidth        NOTIFY profileChanged)
+    Q_PROPERTY(int userTireAspectRatio  READ userTireAspectRatio  NOTIFY profileChanged)
+    Q_PROPERTY(int userTireRimDiameter  READ userTireRimDiameter  NOTIFY profileChanged)
 
     // Injector info
     Q_PROPERTY(int injectorCCMin    READ injectorCCMin    NOTIFY profileChanged)
@@ -169,6 +178,17 @@ public:
 
     QVariantList gearRatios() const;
 
+    double tireCircumferenceM() const;
+    double finalDrive() const;
+
+    int userTireWidth()       const;
+    int userTireAspectRatio() const;
+    int userTireRimDiameter() const;
+
+    Q_INVOKABLE void setUserTireWidth(int mm);
+    Q_INVOKABLE void setUserTireAspectRatio(int pct);
+    Q_INVOKABLE void setUserTireRimDiameter(int inches);
+
     int injectorCCMin()   const;
     int fuelPressureKPA() const;
 
@@ -195,6 +215,14 @@ private:
 
     QStringList m_profileNames;
     QJsonObject m_defaultProfile;
+
+    // User tire overrides
+    int m_userTireWidth = 0;
+    int m_userTireAspectRatio = 0;
+    int m_userTireRimDiameter = 0;
+    QString m_drivetrainConfPath;
+    void loadDrivetrainConf();
+    void saveDrivetrainConf();
 };
 
 #endif // ENGINEPROFILEMANAGER_H

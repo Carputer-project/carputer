@@ -635,6 +635,109 @@ Item {
                         }
                     }
                 }
+                // ── Drivetrain / Tire Size ───────────────────────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: drivetrainColumn.implicitHeight + 20
+                    color: themeManager.bgCard
+                    radius: 8
+                    border.width: 1
+                    border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.22)
+                    Column {
+                        id: drivetrainColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 10
+                        spacing: 8
+                        Text {
+                            text: "DRIVETRAIN"
+                            color: themeManager.carBlue
+                            font.pixelSize: 16; font.bold: true
+                        }
+                        Text {
+                            text: "Override profile defaults for gear detection"
+                            color: themeManager.textSecondary; font.pixelSize: 11
+                        }
+                        // Tire Width
+                        Text { text: "Tire Width (mm)"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 4
+                            Repeater {
+                                model: [185, 195, 205, 215, 225, 235, 245, 255]
+                                Button {
+                                    text: modelData
+                                    Layout.fillWidth: true
+                                    highlighted: engineProfile && engineProfile.userTireWidth === modelData
+                                    background: Rectangle {
+                                        color: engineProfile && engineProfile.userTireWidth === modelData ? themeManager.carBlue : themeManager.bgPanel
+                                        radius: 4
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text
+                                        color: engineProfile && engineProfile.userTireWidth === modelData ? "#fff" : themeManager.textPrimary
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter
+                                    }
+                                    onClicked: engineProfile.setUserTireWidth(modelData)
+                                }
+                            }
+                        }
+                        // Tire Aspect Ratio
+                        Text { text: "Aspect Ratio (%)"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 4
+                            Repeater {
+                                model: [40, 45, 50, 55, 60, 65, 70, 75]
+                                Button {
+                                    text: modelData
+                                    Layout.fillWidth: true
+                                    highlighted: engineProfile && engineProfile.userTireAspectRatio === modelData
+                                    background: Rectangle {
+                                        color: engineProfile && engineProfile.userTireAspectRatio === modelData ? themeManager.carBlue : themeManager.bgPanel
+                                        radius: 4
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text
+                                        color: engineProfile && engineProfile.userTireAspectRatio === modelData ? "#fff" : themeManager.textPrimary
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter
+                                    }
+                                    onClicked: engineProfile.setUserTireAspectRatio(modelData)
+                                }
+                            }
+                        }
+                        // Rim Diameter
+                        Text { text: "Rim Diameter (inches)"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 4
+                            Repeater {
+                                model: [13, 14, 15, 16, 17, 18, 19, 20]
+                                Button {
+                                    text: modelData
+                                    Layout.fillWidth: true
+                                    highlighted: engineProfile && engineProfile.userTireRimDiameter === modelData
+                                    background: Rectangle {
+                                        color: engineProfile && engineProfile.userTireRimDiameter === modelData ? themeManager.carBlue : themeManager.bgPanel
+                                        radius: 4
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text
+                                        color: engineProfile && engineProfile.userTireRimDiameter === modelData ? "#fff" : themeManager.textPrimary
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter
+                                    }
+                                    onClicked: engineProfile.setUserTireRimDiameter(modelData)
+                                }
+                            }
+                        }
+                        // Computed info
+                        Text {
+                            text: engineProfile ? "Tire: " + engineProfile.userTireWidth + "/" + engineProfile.userTireAspectRatio + "R" + engineProfile.userTireRimDiameter + "  •  Circumference: " + engineProfile.tireCircumferenceM.toFixed(3) + "m  •  Final drive: " + engineProfile.finalDrive.toFixed(3) : ""
+                            color: themeManager.textPrimary; font.pixelSize: 11
+                        }
+                        Text {
+                            text: engineProfile ? "Gear ratios: " + engineProfile.gearRatios.join(" / ") : ""
+                            color: themeManager.textSecondary; font.pixelSize: 10
+                        }
+                    }
+                }
 
                 // Power Section
                 Rectangle {
@@ -1081,27 +1184,38 @@ Item {
         if (focusIndex < 41) focusIndex++
     }
     function navigateUp() {
-        if (focusIndex > 6) { focusIndex -= 7; return true }
-        if (focusIndex > 0) { focusIndex = 0; return true }
+        if (focusIndex <= 6) { focusIndex = 0; return true }
+        if (focusIndex <= 15) { focusIndex = 0; return true }
+        if (focusIndex <= 18) { focusIndex = 7; return true }
+        if (focusIndex <= 20) { focusIndex = 16; return true }
+        if (focusIndex <= 25) { focusIndex = 19; return true }
+        if (focusIndex === 26) { focusIndex = 22; return true }
+        if (focusIndex <= 30) { focusIndex = 26; return true }
+        if (focusIndex === 34) { focusIndex = 27; return true }
+        if (focusIndex <= 36) { focusIndex = 34; return true }
+        if (focusIndex <= 39) { focusIndex = 35; return true }
+        if (focusIndex <= 41) { focusIndex = 37; return true }
         return true
     }
     function navigateDown() {
-        if (focusIndex < 6) { focusIndex = 7; return true }
-        if (focusIndex < 15) { focusIndex = 16; return true }
-        if (focusIndex < 18) { focusIndex = 19; return true }
-        if (focusIndex < 21) { focusIndex = 22; return true }
-        if (focusIndex < 24) { focusIndex = 25; return true }
-        if (focusIndex < 25) { focusIndex = 26; return true }
-        if (focusIndex < 26) { focusIndex = 27; return true }
-        if (focusIndex < 28) { focusIndex = 29; return true }
-        if (focusIndex < 29) { focusIndex = 30; return true }
-        if (focusIndex < 30) { focusIndex = 31; return true }
-        if (focusIndex < 31) { focusIndex = 32; return true }
-        if (focusIndex < 33) { focusIndex = 34; return true }
-        if (focusIndex < 34) { focusIndex = 35; return true }
-        if (focusIndex < 36) { focusIndex = 37; return true }
-        if (focusIndex < 38) { focusIndex = 39; return true }
-        if (focusIndex < 39) { focusIndex = 40; return true }
+        if (focusIndex <= 6) { focusIndex = 7; return true }
+        if (focusIndex <= 15) { focusIndex = 16; return true }
+        if (focusIndex <= 18) { focusIndex = 19; return true }
+        if (focusIndex <= 20) { focusIndex = 22; return true }
+        if (focusIndex <= 22) { focusIndex = 23; return true }
+        if (focusIndex === 23) { focusIndex = 24; return true }
+        if (focusIndex === 24) { focusIndex = 25; return true }
+        if (focusIndex === 25) { focusIndex = 26; return true }
+        if (focusIndex === 26) { focusIndex = 27; return true }
+        if (focusIndex <= 28) { focusIndex++; return true }
+        if (focusIndex === 29) { focusIndex = 30; return true }
+        if (focusIndex === 30) { focusIndex = 34; return true }
+        if (focusIndex === 34) { focusIndex = 35; return true }
+        if (focusIndex === 35) { focusIndex = 36; return true }
+        if (focusIndex === 36) { focusIndex = 37; return true }
+        if (focusIndex <= 38) { focusIndex++; return true }
+        if (focusIndex === 39) { focusIndex = 40; return true }
+        if (focusIndex === 40) { focusIndex = 41; return true }
         return false
     }
 
@@ -1119,26 +1233,11 @@ Item {
             event.accepted = true; return
         }
         if (event.key === Qt.Key_Up) {
-            if (focusIndex > 6) { focusIndex -= 7; event.accepted = true; return }
-            if (focusIndex > 0) { focusIndex = 0; event.accepted = true; return }
+            navigateUp()
+            event.accepted = true; return
         }
         if (event.key === Qt.Key_Down) {
-            if (focusIndex < 6) { focusIndex = 7; event.accepted = true; return }
-            if (focusIndex < 15) { focusIndex = 16; event.accepted = true; return }
-            if (focusIndex < 18) { focusIndex = 19; event.accepted = true; return }
-            if (focusIndex < 21) { focusIndex = 22; event.accepted = true; return }
-            if (focusIndex < 24) { focusIndex = 25; event.accepted = true; return }
-            if (focusIndex < 25) { focusIndex = 26; event.accepted = true; return }
-            if (focusIndex < 26) { focusIndex = 27; event.accepted = true; return }
-            if (focusIndex < 28) { focusIndex = 29; event.accepted = true; return }
-            if (focusIndex < 29) { focusIndex = 30; event.accepted = true; return }
-            if (focusIndex < 30) { focusIndex = 31; event.accepted = true; return }
-            if (focusIndex < 31) { focusIndex = 32; event.accepted = true; return }
-            if (focusIndex < 33) { focusIndex = 34; event.accepted = true; return }
-            if (focusIndex < 34) { focusIndex = 35; event.accepted = true; return }
-            if (focusIndex < 36) { focusIndex = 37; event.accepted = true; return }
-            if (focusIndex < 38) { focusIndex = 39; event.accepted = true; return }
-            if (focusIndex < 39) { focusIndex = 40; event.accepted = true; return }
+            navigateDown()
             event.accepted = true; return
         }
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {

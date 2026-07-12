@@ -5,6 +5,13 @@
     "displacement_cc": 2164,
     "compression_ratio": 9.5
   },
+  "drivetrain": {
+    "final_drive": 3.944,
+    "gear_ratios": [3.538, 1.960, 1.250, 0.945, 0.731],
+    "tire_width": 195,
+    "tire_aspect_ratio": 70,
+    "tire_rim_diameter": 14
+  },
   "limits": {
     "rpm": {
       "redline": 6000,
@@ -78,6 +85,5 @@
     "oil_pressure": 0.25,
     "battery": 0.15,
     "drive": 0.10
-  },
-  "gear_ratios": [110, 65, 42, 30]
+  }
 }

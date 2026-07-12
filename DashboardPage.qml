@@ -40,7 +40,9 @@ Item {
     property int _oilPressCaution: engineProfile ? engineProfile.oilPressureCaution : 40
     property int _oilPressDanger: engineProfile ? engineProfile.oilPressureDanger : 20
 
-    property var _gearRatios: engineProfile ? engineProfile.gearRatios : [110, 65, 42, 30]
+    property var _gearRatios: engineProfile ? engineProfile.gearRatios : [3.54, 1.96, 1.25, 0.95, 0.73]
+    property double _tireCircM: engineProfile ? engineProfile.tireCircumferenceM : 1.975
+    property double _finalDrive: engineProfile ? engineProfile.finalDrive : 3.944
     property int _shiftUpRPM: engineProfile ? engineProfile.shiftUpRPM : 3500
     property int _shiftDownRPM: engineProfile ? engineProfile.shiftDownRPM : 1300
     property int _engineRunningThreshold: engineProfile ? engineProfile.engineRunningThreshold : 100
@@ -87,20 +89,31 @@ Item {
     property bool engineRunning: sensorManager ? sensorManager.rpm > _engineRunningThreshold : false
 
     // ── Shift Indicator ─────────────────────────────────────────────────
-    // Approximate gear detection from speed/rpm ratio for 5-speed manual
+    // Gear detection using real transmission ratios and tire circumference
     property int currentGear: {
         if (!sensorManager || sensorManager.rpm <= 0 || sensorManager.speed <= 0) return 0
-        var ratio = sensorManager.rpm / Math.max(1, sensorManager.speed)
-        if (ratio > _gearRatios[0]) return 1
-        if (ratio > _gearRatios[1]) return 2
-        if (ratio > _gearRatios[2]) return 3
-        if (ratio > _gearRatios[3]) return 4
-        return 5
+        var rpm = sensorManager.rpm
+        var speedKmh = sensorManager.speed * 1.60934
+        if (speedKmh < 1) return 0
+        var effectiveRatio = (rpm * _tireCircM * 60.0) / (speedKmh * 1000.0)
+        var bestGear = 0
+        var bestDist = 999
+        for (var i = 0; i < _gearRatios.length; i++) {
+            var totalRatio = _gearRatios[i] * _finalDrive
+            var dist = Math.abs(effectiveRatio - totalRatio)
+            if (dist < bestDist) { bestDist = dist; bestGear = i + 1 }
+        }
+        if (bestDist > bestGear * 0.35) return 0
+        return bestGear
+    }
+    property string gearLabel: {
+        if (currentGear === 0) return "N"
+        return currentGear.toString()
     }
     property string shiftAdvice: {
         if (!sensorManager || currentGear === 0) return ""
         var rpm = sensorManager.rpm
-        if (rpm > _shiftUpRPM && currentGear < 5) return "↑  " + currentGear + "→" + (currentGear + 1)
+        if (rpm > _shiftUpRPM && currentGear < _gearRatios.length) return "↑  " + currentGear + "→" + (currentGear + 1)
         if (rpm < _shiftDownRPM && currentGear > 1) return "↓  " + currentGear + "→" + (currentGear - 1)
         return ""
     }
@@ -727,17 +740,34 @@ property string oilPressureAlert: {
                 thickness: 0.22
             }
 
-            // Wideband O2 gauge (piggyback module)
+            // O2 gauge — narrowband (direct) or wideband (piggyback)
             WidebandGauge {
                 id: wboGauge
                 width: 100; height: 100
                 anchors { left: oilPressGauge.right; leftMargin: 6; top: tpsGauge.top; topMargin: 0 }
-                afr: sensorManager ? sensorManager.wboAFR : 14.7
-                lambda: sensorManager ? sensorManager.wboLambda : 1.0
-                targetAfr: sensorManager ? sensorManager.targetAFR : 14.7
-                correction: sensorManager ? sensorManager.fuelCorrection : 0.0
+                property bool hasWideband: sensorManager && sensorManager.wboLambda !== 1.0
+                afr: sensorManager ? (hasWideband ? sensorManager.wboAFR : sensorManager.o2AFR) : 14.7
+                lambda: sensorManager ? (hasWideband ? sensorManager.wboLambda : (sensorManager.o2AFR / 14.7)) : 1.0
+                targetAfr: sensorManager ? (hasWideband ? sensorManager.targetAFR : 14.7) : 14.7
+                correction: sensorManager ? (hasWideband ? sensorManager.fuelCorrection : 0.0) : 0.0
                 opacity: sensorManager ? 1.0 : 0.3
                 Behavior on opacity { NumberAnimation { duration: 300 } }
+            }
+
+            // Gear indicator
+            Rectangle {
+                id: gearBadge
+                width: 44; height: 44; radius: 8
+                anchors { left: wboGauge.right; leftMargin: 8; verticalCenter: wboGauge.verticalCenter }
+                color: currentGear === 0 ? themeManager.bgDark : themeManager.carBlue
+                border.width: 2
+                border.color: currentGear === 0 ? themeManager.textSecondary : themeManager.carBlue
+                Text {
+                    anchors.centerIn: parent
+                    text: dashPage.gearLabel
+                    color: currentGear === 0 ? themeManager.textSecondary : "#fff"
+                    font.pixelSize: 22; font.bold: true
+                }
             }
 
             AnalogGauge {

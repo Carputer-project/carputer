@@ -132,6 +132,12 @@ void SensorManager::parseSensorJson(const QByteArray &data)
         if (qAbs(m_fuelCorrection - v) > 0.01) { m_fuelCorrection = v; emit fuelCorrectionChanged(); }
     }
 
+    // Narrowband O2
+    if (d.contains("o2AFR")) {
+        double v = d.value("o2AFR").toDouble();
+        if (qAbs(m_o2AFR - v) > 0.05) { m_o2AFR = v; emit o2AFRChanged(); }
+    }
+
     emit sensorDataReceived(QString::fromUtf8(data));
 }
 

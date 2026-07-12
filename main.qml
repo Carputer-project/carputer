@@ -47,6 +47,7 @@ Window {
                 case 4:  return "DashcamPage.qml"
                 case 5:  return "SettingsPage.qml"
                 case 6:  return "RadioPage.qml"
+                case 7:  return "TripLogPage.qml"
                 default: return "DashboardPage.qml"
                 }
             }
@@ -80,6 +81,7 @@ Window {
                         { icon: "◴", label: "RADIO",   page: 6 },
                         { icon: "◉", label: "REAR",    page: 3 },
                         { icon: "⏺", label: "DVR",     page: 4 },
+                        { icon: "▦", label: "TRIP",    page: 7 },
                          { icon: "⚙", label: "SETUP",   page: 5 }
                     ]
                         Rectangle {
@@ -255,7 +257,7 @@ Window {
             }
             // Number keys 1-8 for page navigation
             if (event.key >= Qt.Key_1 && event.key <= Qt.Key_8) {
-                var pages = [1, 2, 3, 4, 5];
+                var pages = [1, 2, 3, 4, 5, 6, 7];
                 var newPage = pages[(event.key - Qt.Key_1)];
                 if (newPage && newPage !== root.activePage) {
                     root.activePage = newPage;

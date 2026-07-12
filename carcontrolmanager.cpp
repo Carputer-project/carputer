@@ -23,7 +23,7 @@ CarControlManager::CarControlManager(QObject *parent)
             this, &CarControlManager::onReadyRead);
 
     m_retryTimer = new QTimer(this);
-    m_retryTimer->setInterval(3000);
+    m_retryTimer->setInterval(1000);
     connect(m_retryTimer, &QTimer::timeout, this, &CarControlManager::tryConnect);
 
     tryConnect();
@@ -59,6 +59,7 @@ void CarControlManager::onConnected()
 {
     m_connected = true;
     m_retryTimer->stop();
+    m_retryMs = 1000;
     setStatus(QString("Connected on %1").arg(m_portName));
     emit connectedChanged();
     qCInfo(lcCarControl) << "Connected to" << m_portName;
@@ -71,6 +72,8 @@ void CarControlManager::onDisconnected()
     emit connectedChanged();
     setStatus(QString("Disconnected from %1").arg(m_portName));
     qCInfo(lcCarControl) << "Disconnected from" << m_portName;
+    if (m_retryMs < 30000) m_retryMs *= 2;
+    m_retryTimer->setInterval(m_retryMs);
     m_retryTimer->start();
 }
 
@@ -199,6 +202,20 @@ void CarControlManager::parseStatus(const QString &line)
                 emit radioChanged();
                 emit radioTrebleChanged(newVal);
                 qCDebug(lcCarControl) << "Radio treble:" << newVal;
+            }
+        } else if (part.startsWith("D:")) {
+            int newVal = part.mid(2).toInt();
+            if (m_radioFader != newVal) {
+                m_radioFader = newVal;
+                emit radioChanged();
+                qCDebug(lcCarControl) << "Radio fader:" << newVal;
+            }
+        } else if (part.startsWith("O:")) {
+            bool newVal = (part.mid(2) == "1");
+            if (m_radioLoudness != newVal) {
+                m_radioLoudness = newVal;
+                emit radioChanged();
+                qCDebug(lcCarControl) << "Radio loudness:" << (newVal ? "ON" : "OFF");
             }
         }
     }
@@ -334,6 +351,18 @@ void CarControlManager::setRadioTreble(int value)
     if (value < 0) value = 0;
     if (value > 31) value = 31;
     sendCommand('T', value);
+}
+
+void CarControlManager::setRadioFader(int fader)
+{
+    if (fader < -15) fader = -15;
+    if (fader > 15) fader = 15;
+    sendCommand('D', fader);
+}
+
+void CarControlManager::setRadioLoudness(bool on)
+{
+    sendCommand('O', on ? 1 : 0);
 }
 
 void CarControlManager::queryStatus()

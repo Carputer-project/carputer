@@ -9,6 +9,7 @@
         <file>WidebandGauge.qml</file>
         <file>SettingsPage.qml</file>
         <file>RadioPage.qml</file>
+        <file>TripLogPage.qml</file>
         <file>CarPlayPage.qml</file>
     </qresource>
 </RCC>

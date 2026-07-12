@@ -35,6 +35,8 @@ class CarControlManager : public QObject
     Q_PROPERTY(bool radioMuted   READ radioMuted   NOTIFY radioChanged)
     Q_PROPERTY(int  radioBass    READ radioBass    NOTIFY radioChanged)
     Q_PROPERTY(int  radioTreble  READ radioTreble  NOTIFY radioChanged)
+    Q_PROPERTY(int  radioFader   READ radioFader   NOTIFY radioChanged)
+    Q_PROPERTY(bool radioLoudness READ radioLoudness NOTIFY radioChanged)
 
 public:
     explicit CarControlManager(QObject *parent = nullptr);
@@ -65,6 +67,8 @@ public:
     bool radioMuted()  const { return m_radioMuted; }
     int  radioBass()   const { return m_radioBass; }
     int  radioTreble() const { return m_radioTreble; }
+    int  radioFader()  const { return m_radioFader; }
+    bool radioLoudness() const { return m_radioLoudness; }
 
     // Commands
     Q_INVOKABLE void setPort(const QString &port);
@@ -93,6 +97,8 @@ public:
     Q_INVOKABLE void setRadioMuted(bool muted);
     Q_INVOKABLE void setRadioBass(int value);     // 0-31 (16=flat)
     Q_INVOKABLE void setRadioTreble(int value);   // 0-31 (16=flat)
+    Q_INVOKABLE void setRadioFader(int fader);    // -15..+15 (0=center)
+    Q_INVOKABLE void setRadioLoudness(bool on);
 
     // Door chime
     Q_INVOKABLE void playChime();
@@ -147,11 +153,12 @@ private:
     void parseJoypad(const QString &line);
     void setStatus(const QString &text);
 
-    QTcpSocket *m_socket    = nullptr;
-    QTimer      *m_retryTimer  = nullptr;
-    QByteArray   m_buffer;
-    QString     m_portName  = "192.168.4.1:5000"; // TCP address
-    QString     m_statusText  = QStringLiteral("Not connected");
+    QTcpSocket   *m_socket       = nullptr;
+    QTimer       *m_retryTimer   = nullptr;
+    int           m_retryMs      = 1000;
+    QByteArray    m_buffer;
+    QString       m_portName     = "192.168.4.1:5000";
+    QString       m_statusText   = QStringLiteral("Not connected");
 
     bool m_connected   = false;
 
@@ -174,6 +181,8 @@ private:
     bool m_radioMuted  = true;
     int  m_radioBass   = 16;
     int  m_radioTreble = 16;
+    int  m_radioFader  = 0;
+    bool m_radioLoudness = false;
 };
 
 #endif // CARCONTROLMANAGER_H

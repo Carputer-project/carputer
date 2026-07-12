@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QTimer>
+#include <QVariantList>
+#include <QVariantMap>
 
 class SensorManager;
 
@@ -23,6 +25,9 @@ public:
 
     Q_INVOKABLE void startLogging();
     Q_INVOKABLE void stopLogging();
+    Q_INVOKABLE QVariantList listTrips();
+    Q_INVOKABLE QVariantMap tripSummary(const QString &filePath);
+    Q_INVOKABLE QVariantList tripData(const QString &filePath);
 
 signals:
     void loggingChanged();

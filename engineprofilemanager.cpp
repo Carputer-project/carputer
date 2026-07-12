@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QLoggingCategory>
 #include <QDebug>
+#include <QtMath>
 
 Q_LOGGING_CATEGORY(lcProfile, "carputer.profile")
 
@@ -30,6 +31,10 @@ EngineProfileManager::EngineProfileManager(QObject *parent)
         qCWarning(lcProfile) << "No engine_profiles directory found";
         return;
     }
+
+    // Set up drivetrain.conf path (sibling to engine_profiles/)
+    m_drivetrainConfPath = QFileInfo(m_profileDir).dir().absolutePath() + "/drivetrain.conf";
+    loadDrivetrainConf();
 
     scanProfiles();
 
@@ -319,13 +324,106 @@ double EngineProfileManager::healthWeightDrive()      const
 
 QVariantList EngineProfileManager::gearRatios() const
 {
-    QJsonArray arr = jsonArray({"gear_ratios"});
+    QJsonArray arr = jsonArray({"drivetrain", "gear_ratios"});
     if (arr.isEmpty())
-        return {110, 65, 42, 30};
+        arr = jsonArray({"gear_ratios"});
+    if (arr.isEmpty())
+        return {3.54, 1.96, 1.25, 0.95, 0.73};
     QVariantList list;
     for (const QJsonValue &v : arr)
-        list.append(v.toInt());
+        list.append(v.toDouble());
     return list;
+}
+
+// ── Drivetrain ───────────────────────────────────────────────────────────────
+
+double EngineProfileManager::finalDrive() const
+{
+    double fd = jsonDouble({"drivetrain", "final_drive"}, 0);
+    if (fd <= 0) fd = jsonDouble({"final_drive"}, 3.944);
+    return fd;
+}
+
+double EngineProfileManager::tireCircumferenceM() const
+{
+    int w  = m_userTireWidth > 0 ? m_userTireWidth : jsonInt({"drivetrain", "tire_width"}, 195);
+    int ar = m_userTireAspectRatio > 0 ? m_userTireAspectRatio : jsonInt({"drivetrain", "tire_aspect_ratio"}, 65);
+    int rd = m_userTireRimDiameter > 0 ? m_userTireRimDiameter : jsonInt({"drivetrain", "tire_rim_diameter"}, 15);
+
+    double sidewallM = (w * ar / 100.0) / 1000.0;
+    double rimM = rd * 0.0254;
+    double diameterM = rimM + 2.0 * sidewallM;
+    return diameterM * M_PI;
+}
+
+int EngineProfileManager::userTireWidth() const
+{
+    if (m_userTireWidth > 0) return m_userTireWidth;
+    return jsonInt({"drivetrain", "tire_width"}, 195);
+}
+
+int EngineProfileManager::userTireAspectRatio() const
+{
+    if (m_userTireAspectRatio > 0) return m_userTireAspectRatio;
+    return jsonInt({"drivetrain", "tire_aspect_ratio"}, 65);
+}
+
+int EngineProfileManager::userTireRimDiameter() const
+{
+    if (m_userTireRimDiameter > 0) return m_userTireRimDiameter;
+    return jsonInt({"drivetrain", "tire_rim_diameter"}, 15);
+}
+
+void EngineProfileManager::setUserTireWidth(int mm)
+{
+    if (mm < 100 || mm > 400) return;
+    m_userTireWidth = mm;
+    saveDrivetrainConf();
+    emit profileChanged();
+}
+
+void EngineProfileManager::setUserTireAspectRatio(int pct)
+{
+    if (pct < 10 || pct > 100) return;
+    m_userTireAspectRatio = pct;
+    saveDrivetrainConf();
+    emit profileChanged();
+}
+
+void EngineProfileManager::setUserTireRimDiameter(int inches)
+{
+    if (inches < 10 || inches > 24) return;
+    m_userTireRimDiameter = inches;
+    saveDrivetrainConf();
+    emit profileChanged();
+}
+
+void EngineProfileManager::loadDrivetrainConf()
+{
+    QFile f(m_drivetrainConfPath);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+    f.close();
+    if (!doc.isObject()) return;
+    QJsonObject obj = doc.object();
+    m_userTireWidth = obj["tire_width"].toInt(0);
+    m_userTireAspectRatio = obj["tire_aspect_ratio"].toInt(0);
+    m_userTireRimDiameter = obj["tire_rim_diameter"].toInt(0);
+    qCDebug(lcProfile) << "Loaded drivetrain overrides:" << m_userTireWidth << m_userTireAspectRatio << m_userTireRimDiameter;
+}
+
+void EngineProfileManager::saveDrivetrainConf()
+{
+    QJsonObject obj;
+    obj["tire_width"] = m_userTireWidth;
+    obj["tire_aspect_ratio"] = m_userTireAspectRatio;
+    obj["tire_rim_diameter"] = m_userTireRimDiameter;
+    QFile f(m_drivetrainConfPath);
+    if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        f.write(QJsonDocument(obj).toJson());
+        f.close();
+        qCDebug(lcProfile) << "Saved drivetrain overrides:" << m_userTireWidth << m_userTireAspectRatio << m_userTireRimDiameter;
+    }
 }
 
 // ── Injector / Fuel ──────────────────────────────────────────────────────────
