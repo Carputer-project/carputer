@@ -37,6 +37,10 @@
 #include "alarmmanager.h"
 #include "remotekeymanager.h"
 #include "v2vmanager.h"
+#include <QUdpSocket>
+#include <QTimer>
+#include <QJsonObject>
+#include <QJsonDocument>
 
 static QQmlDebuggingEnabler s_qmlDebuggingEnabler;
 
@@ -283,6 +287,40 @@ int main(int argc, char *argv[])
     QObject::connect(&sensorManager, &SensorManager::passengerDoorChanged, onAnyDoorChanged);
     QObject::connect(&sensorManager, &SensorManager::trunkChanged,         onAnyDoorChanged);
     QObject::connect(&sensorManager, &SensorManager::hoodChanged,          onAnyDoorChanged);
+
+    // ── Cluster display broadcast (sends media/trip data to ESP32 cluster) ──
+    QUdpSocket clusterSocket;
+    QTimer clusterTimer;
+    QObject::connect(&clusterTimer, &QTimer::timeout, [&]() {
+        QJsonObject root;
+
+        // Media data
+        QJsonObject media;
+        media["title"]    = mediaManager.currentTitle();
+        media["artist"]   = mediaManager.currentArtist();
+        media["album"]    = mediaManager.currentAlbum();
+        media["playing"]  = mediaManager.playing();
+        media["volume"]   = mediaManager.volume();
+        media["position"] = (int)(mediaManager.position() / 1000);
+        media["duration"] = (int)(mediaManager.duration() / 1000);
+        root["media"] = media;
+
+        // Trip data
+        QJsonObject trip;
+        trip["distance"]   = tripComputer.distance();
+        trip["avgSpeed"]   = tripComputer.avgSpeed();
+        trip["fuelUsed"]   = tripComputer.fuelUsed();
+        trip["instantMpg"] = tripComputer.instantMpg();
+        trip["tripTime"]   = tripComputer.tripTime();
+        trip["running"]    = tripComputer.running();
+        root["trip"] = trip;
+
+        QByteArray data = QJsonDocument(root).toJson(QJsonDocument::Compact);
+
+        // Broadcast to subnet
+        clusterSocket.writeDatagram(data, QHostAddress::Broadcast, 5006);
+    });
+    clusterTimer.start(500);  // 2 Hz update rate
 
     QScreen *screen = app.primaryScreen();
     engine.rootContext()->setContextProperty("screenWidth",  screen->size().width());
