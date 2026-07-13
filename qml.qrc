@@ -10,6 +10,9 @@
         <file>SettingsPage.qml</file>
         <file>RadioPage.qml</file>
         <file>TripLogPage.qml</file>
+        <file>BluetoothPage.qml</file>
         <file>CarPlayPage.qml</file>
+        <file>VinSetupPage.qml</file>
+        <file>AlarmPage.qml</file>
     </qresource>
 </RCC>

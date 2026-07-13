@@ -38,7 +38,12 @@ SOURCES += \
     dtcmanager.cpp \
     tripcomputer.cpp \
     datalogger.cpp \
-    engineprofilemanager.cpp
+    engineprofilemanager.cpp \
+    bluetoothmanager.cpp \
+    vinmanager.cpp \
+    alarmmanager.cpp \
+    remotekeymanager.cpp \
+    v2vmanager.cpp
 
 HEADERS += \
     systemmanager.h \
@@ -62,7 +67,12 @@ HEADERS += \
     dtcmanager.h \
     tripcomputer.h \
     datalogger.h \
-    engineprofilemanager.h
+    engineprofilemanager.h \
+    bluetoothmanager.h \
+    vinmanager.h \
+    alarmmanager.h \
+    remotekeymanager.h \
+    v2vmanager.h
 
 RESOURCES += qml.qrc
 

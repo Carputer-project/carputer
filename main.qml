@@ -21,7 +21,9 @@ Window {
     property bool navBarFocused: false
     onActivePageChanged: {
         configManager.lastPage = activePage
-        focusedNavIndex = activePage - 1
+        var navPages = [1, 2, 6, 3, 4, 7, 5];
+        var idx = navPages.indexOf(activePage);
+        focusedNavIndex = idx >= 0 ? idx : 0;
         navBarFocused = false
         Qt.callLater(function() {
             pageLoader.item && pageLoader.item.forceActiveFocus()
@@ -48,12 +50,17 @@ Window {
                 case 5:  return "SettingsPage.qml"
                 case 6:  return "RadioPage.qml"
                 case 7:  return "TripLogPage.qml"
+                case 8:  return "BluetoothPage.qml"
+                case 9:  return "VinSetupPage.qml"
+                case 10: return "AlarmPage.qml"
                 default: return "DashboardPage.qml"
                 }
             }
             onLoaded: {
                 item.focus = true
                 item.forceActiveFocus()
+                if (item.navigateToPage)
+                    item.navigateToPage.connect(function(page) { root.activePage = page })
             }
         }
         Rectangle {
@@ -82,7 +89,7 @@ Window {
                         { icon: "◉", label: "REAR",    page: 3 },
                         { icon: "⏺", label: "DVR",     page: 4 },
                         { icon: "▦", label: "TRIP",    page: 7 },
-                         { icon: "⚙", label: "SETUP",   page: 5 }
+                        { icon: "⚙", label: "SETUP",   page: 5 }
                     ]
                         Rectangle {
                         id: navItem
@@ -180,7 +187,7 @@ Window {
             function onJoypadLeft() {
                 showJoypad("LEFT")
                 if (root.navBarFocused) {
-                    root.focusedNavIndex = (root.focusedNavIndex + 5) % 6
+                    root.focusedNavIndex = (root.focusedNavIndex + navRepeater.count - 1) % navRepeater.count
                     return
                 }
                 if (pageLoader.item && pageLoader.item.navigateLeft)
@@ -189,7 +196,7 @@ Window {
             function onJoypadRight() {
                 showJoypad("RIGHT")
                 if (root.navBarFocused) {
-                    root.focusedNavIndex = (root.focusedNavIndex + 1) % 6
+                    root.focusedNavIndex = (root.focusedNavIndex + 1) % navRepeater.count
                     return
                 }
                 if (pageLoader.item && pageLoader.item.navigateRight)
@@ -198,7 +205,8 @@ Window {
             function onJoypadSelect() {
                 showJoypad("SELECT")
                 if (root.navBarFocused) {
-                    root.activePage = root.focusedNavIndex + 1
+                    var navPages = [1, 2, 6, 3, 4, 7, 5];
+                    root.activePage = navPages[root.focusedNavIndex];
                     root.navBarFocused = false
                     return
                 }
@@ -219,11 +227,22 @@ Window {
             }
         }
         Keys.onPressed: {
+            // Media: Ctrl+Left/Right must be checked before bare Left/Right
+            if (event.key === Qt.Key_Left && (event.modifiers & Qt.ControlModifier)) {
+                mediaManager.previous();
+                event.accepted = true;
+                return;
+            }
+            if (event.key === Qt.Key_Right && (event.modifiers & Qt.ControlModifier)) {
+                mediaManager.next();
+                event.accepted = true;
+                return;
+            }
             if (event.key === Qt.Key_Left) {
                 root.joypadLastCmd = "LEFT";
                 if (!root.menuVisible) root.menuVisible = true;
                 var prevKb = root.focusedNavIndex - 1;
-                if (prevKb < 0) prevKb = 5;
+                if (prevKb < 0) prevKb = 6;
                 root.focusedNavIndex = prevKb;
                 event.accepted = true;
                 return;
@@ -232,7 +251,7 @@ Window {
                 root.joypadLastCmd = "RIGHT";
                 if (!root.menuVisible) root.menuVisible = true;
                 var nextKb = root.focusedNavIndex + 1;
-                if (nextKb > 5) nextKb = 0;
+                if (nextKb > 6) nextKb = 0;
                 root.focusedNavIndex = nextKb;
                 event.accepted = true;
                 return;
@@ -255,12 +274,18 @@ Window {
                 event.accepted = true;
                 return;
             }
-            // Number keys 1-8 for page navigation
-            if (event.key >= Qt.Key_1 && event.key <= Qt.Key_8) {
-                var pages = [1, 2, 3, 4, 5, 6, 7];
-                var newPage = pages[(event.key - Qt.Key_1)];
-                if (newPage && newPage !== root.activePage) {
+            // Number keys 1-9, 0=10 for page navigation
+            if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
+                var newPage = event.key - Qt.Key_1 + 1;
+                if (newPage !== root.activePage) {
                     root.activePage = newPage;
+                }
+                event.accepted = true;
+                return;
+            }
+            if (event.key === Qt.Key_0) {
+                if (root.activePage !== 10) {
+                    root.activePage = 10;
                 }
                 event.accepted = true;
                 return;
@@ -277,16 +302,6 @@ Window {
                     mediaManager.pause();
                 else
                     mediaManager.play();
-                event.accepted = true;
-                return;
-            }
-            if (event.key === Qt.Key_Left && (event.modifiers & Qt.ControlModifier)) {
-                mediaManager.previous();
-                event.accepted = true;
-                return;
-            }
-            if (event.key === Qt.Key_Right && (event.modifiers & Qt.ControlModifier)) {
-                mediaManager.next();
                 event.accepted = true;
                 return;
             }

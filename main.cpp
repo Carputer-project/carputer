@@ -32,6 +32,11 @@
 #include "tripcomputer.h"
 #include "datalogger.h"
 #include "engineprofilemanager.h"
+#include "bluetoothmanager.h"
+#include "vinmanager.h"
+#include "alarmmanager.h"
+#include "remotekeymanager.h"
+#include "v2vmanager.h"
 
 static QQmlDebuggingEnabler s_qmlDebuggingEnabler;
 
@@ -185,6 +190,32 @@ int main(int argc, char *argv[])
     EngineProfileManager engineProfileManager;
     engine.rootContext()->setContextProperty("engineProfile", &engineProfileManager);
     tripComputer.setEngineProfileManager(&engineProfileManager);
+
+    BluetoothManager bluetoothManager;
+    engine.rootContext()->setContextProperty("bluetoothManager", &bluetoothManager);
+
+    VinManager vinManager;
+    engine.rootContext()->setContextProperty("vinManager", &vinManager);
+
+    AlarmManager alarmManager;
+    engine.rootContext()->setContextProperty("alarmManager", &alarmManager);
+
+    RemoteKeyManager remoteKeyManager;
+    engine.rootContext()->setContextProperty("remoteKeyManager", &remoteKeyManager);
+
+    // Link VIN manager secret to remote key manager
+    QObject::connect(&vinManager, &VinManager::secretChanged, &remoteKeyManager, [&]() {
+        remoteKeyManager.setSecret(vinManager.secret());
+    });
+    QObject::connect(&vinManager, &VinManager::vinChanged, &remoteKeyManager, [&]() {
+        remoteKeyManager.setVin(vinManager.vin());
+    });
+    // Initialize with current values
+    remoteKeyManager.setSecret(vinManager.secret());
+    remoteKeyManager.setVin(vinManager.vin());
+
+    V2vManager v2vManager;
+    engine.rootContext()->setContextProperty("v2vManager", &v2vManager);
 
     // Auto-start trip computer when engine is running (RPM > 0)
     QObject::connect(&sensorManager, &SensorManager::rpmChanged,

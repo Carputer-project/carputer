@@ -107,7 +107,7 @@ Item {
                             { label: "SRC 4", idx: 3 }
                         ]
                         Button {
-                            Layout.fillWidth: true; Layout.preferredHeight: 36
+                            Layout.fillWidth: true; Layout.preferredHeight: 48
                             text: modelData.label; font.pixelSize: 12
                             highlighted: src === modelData.idx
                             palette.button: src === modelData.idx ? themeManager.carBlue : themeManager.bgPanel

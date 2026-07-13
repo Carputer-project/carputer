@@ -379,7 +379,7 @@ Item {
                         Button {
                             id: btnEq
                             text: showEq ? "EQ ▲" : "EQ ▼"
-                            width: 60; height: 30
+                            width: 80; height: 44
                             font.pixelSize: 12
                             onClicked: showEq = !showEq
                         }
@@ -439,7 +439,7 @@ Item {
                         }
                         Button {
                             text: "RESET"
-                            width: 70; height: 24
+                            width: 80; height: 44
                             font.pixelSize: 11
                             anchors.horizontalCenter: parent.horizontalCenter
                             onClicked: mediaManager.resetEq()

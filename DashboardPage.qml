@@ -846,8 +846,8 @@ property string oilPressureAlert: {
                         RowLayout {
                             Layout.fillWidth: true; spacing: 4
                             Button {
-                                Layout.preferredWidth: 30; Layout.preferredHeight: 30
-                                text: "-"; font.pixelSize: 16; padding: 0
+                                Layout.preferredWidth: 44; Layout.preferredHeight: 44
+                                text: "-"; font.pixelSize: 18; padding: 0
                                 highlighted: dashPage.focusIndex === 0
                                 onClicked: if (hvacOn && temperature > 60) temperature--
                             }
@@ -857,8 +857,8 @@ property string oilPressureAlert: {
                                 Layout.alignment: Qt.AlignCenter
                             }
                             Button {
-                                Layout.preferredWidth: 30; Layout.preferredHeight: 30
-                                text: "+"; font.pixelSize: 16; padding: 0
+                                Layout.preferredWidth: 44; Layout.preferredHeight: 44
+                                text: "+"; font.pixelSize: 18; padding: 0
                                 highlighted: dashPage.focusIndex === 1
                                 onClicked: if (hvacOn && temperature < 85) temperature++
                             }
@@ -880,15 +880,15 @@ property string oilPressureAlert: {
                             Repeater {
                                 model: 5
                                 Rectangle {
-                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
-                                    radius: 12
+                                    Layout.preferredWidth: 36; Layout.preferredHeight: 36
+                                    radius: 18
                                     color: fanSpeed > index ? themeManager.carBlue : themeManager.bgPanel
                                     border.width: dashPage.focusIndex === 2 ? 2 : 1
                                     border.color: dashPage.focusIndex === 2 ? themeManager.carBlue : themeManager.textSecondary
                                     Text {
                                         anchors.centerIn: parent
                                         text: index + 1; color: fanSpeed > index ? "#000" : themeManager.textSecondary
-                                        font.pixelSize: 10; font.bold: true
+                                        font.pixelSize: 12; font.bold: true
                                     }
                                     MouseArea {
                                         anchors.fill: parent

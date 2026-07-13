@@ -6,6 +6,10 @@ Item {
     anchors.fill: parent
     focus: true
     property int focusIndex: -1
+    property int wifiListFocus: 0
+    property int dtcListFocus: 0
+    property int diskListFocus: 0
+    signal navigateToPage(int page)
     Rectangle {
         anchors.fill: parent
         color: themeManager.bgDark
@@ -50,7 +54,7 @@ Item {
                     radius: 8
                     border.width: 1
                     border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.22)
-                    Column {
+                    ColumnLayout {
                         id: themeColumn
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -206,7 +210,7 @@ Item {
                     radius: 8
                     border.width: 1
                     border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.22)
-                    Column {
+                    ColumnLayout {
                         id: bgColumn
                         anchors.left: parent.left; anchors.right: parent.right
                         anchors.margins: 10
@@ -333,10 +337,10 @@ Item {
                                 Row {
                                     anchors.fill: parent
                                     spacing: 10
-                                    Text { text: modelData; color: themeManager.textPrimary; verticalAlignment: Text.AlignVCenter }
+                                    Text { text: modelData; color: settingsPage.focusIndex === 25 && settingsPage.wifiListFocus === index ? themeManager.carBlue : themeManager.textPrimary; verticalAlignment: Text.AlignVCenter }
                                     Button {
                                         text: "Connect"
-                                        highlighted: settingsPage.focusIndex === 25
+                                        highlighted: settingsPage.focusIndex === 25 && settingsPage.wifiListFocus === index
                                         onClicked: if (internalWiFiManager) internalWiFiManager.connectToNetwork(modelData)
                                     }
                                 }
@@ -400,8 +404,8 @@ Item {
                                     width: parent.width; height: 34
                                     color: themeManager.bgDark
                                     radius: 4
-                                    border.width: settingsPage.focusIndex === 29 ? 2 : 1
-                                    border.color: settingsPage.focusIndex === 29 ? themeManager.carBlue : Qt.rgba(themeManager.statusRed.r, themeManager.statusRed.g, themeManager.statusRed.b, 0.15)
+                                    border.width: settingsPage.focusIndex === 29 && settingsPage.dtcListFocus === index ? 2 : 1
+                                    border.color: settingsPage.focusIndex === 29 && settingsPage.dtcListFocus === index ? themeManager.carBlue : Qt.rgba(themeManager.statusRed.r, themeManager.statusRed.g, themeManager.statusRed.b, 0.15)
                                     Row {
                                         anchors.left: parent.left; anchors.right: parent.right
                                         anchors.margins: 8; anchors.verticalCenter: parent.verticalCenter
@@ -522,6 +526,7 @@ Item {
                         from: 0; to: 100
                         value: mediaManager ? mediaManager.volume : 80
                         onMoved: mediaManager.setVolume(Math.round(value))
+                        onPressedChanged: { if (!pressed) value = Qt.binding(function() { return mediaManager ? mediaManager.volume : 80 }) }
                     }
                     Text { text: mediaManager.volume + "%"; color: themeManager.textSecondary; font.pixelSize: 12; Layout.minimumWidth: 40 }
                 }
@@ -589,7 +594,7 @@ Item {
                     radius: 8
                     border.width: 1
                     border.color: Qt.rgba(themeManager.carOrange.r, themeManager.carOrange.g, themeManager.carOrange.b, 0.22)
-                    Column {
+                    ColumnLayout {
                         id: engineProfileColumn
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -643,7 +648,7 @@ Item {
                     radius: 8
                     border.width: 1
                     border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.22)
-                    Column {
+                    ColumnLayout {
                         id: drivetrainColumn
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -739,6 +744,93 @@ Item {
                     }
                 }
 
+                // ── Advanced Section ───────────────────────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: advancedColumn.implicitHeight + 20
+                    color: themeManager.bgCard
+                    radius: 8
+                    border.width: 1
+                    border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.22)
+                    ColumnLayout {
+                        id: advancedColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 10
+                        spacing: 8
+                        Text {
+                            text: "ADVANCED"
+                            color: themeManager.carBlue
+                            font.pixelSize: 16; font.bold: true
+                        }
+                        Text {
+                            text: "Bluetooth, VIN binding, and alarm configuration"
+                            color: themeManager.textSecondary; font.pixelSize: 11
+                        }
+                        Row {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Rectangle {
+                                width: (parent.width - 16) / 3
+                                height: 60
+                                color: themeManager.bgDark
+                                radius: 8
+                                border.width: 1
+                                border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.30)
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: settingsPage.navigateToPage(8)
+                                }
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+                                    Text { text: "\u27D0"; color: themeManager.carBlue; font.pixelSize: 20; anchors.horizontalCenter: parent.horizontalCenter }
+                                    Text { text: "BLUETOOTH"; color: themeManager.textPrimary; font.pixelSize: 11; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+                                }
+                            }
+                            Rectangle {
+                                width: (parent.width - 16) / 3
+                                height: 60
+                                color: themeManager.bgDark
+                                radius: 8
+                                border.width: 1
+                                border.color: Qt.rgba(themeManager.carBlue.r, themeManager.carBlue.g, themeManager.carBlue.b, 0.30)
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: settingsPage.navigateToPage(9)
+                                }
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+                                    Text { text: "\u26CA"; color: themeManager.carBlue; font.pixelSize: 20; anchors.horizontalCenter: parent.horizontalCenter }
+                                    Text { text: "VIN"; color: themeManager.textPrimary; font.pixelSize: 11; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+                                }
+                            }
+                            Rectangle {
+                                width: (parent.width - 16) / 3
+                                height: 60
+                                color: themeManager.bgDark
+                                radius: 8
+                                border.width: 1
+                                border.color: Qt.rgba(themeManager.carOrange.r, themeManager.carOrange.g, themeManager.carOrange.b, 0.30)
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: settingsPage.navigateToPage(10)
+                                }
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+                                    Text { text: "\u26A0"; color: themeManager.carOrange; font.pixelSize: 20; anchors.horizontalCenter: parent.horizontalCenter }
+                                    Text { text: "ALARM"; color: themeManager.textPrimary; font.pixelSize: 11; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Power Section
                 Rectangle {
                     Layout.fillWidth: true
@@ -802,14 +894,14 @@ Item {
                             spacing: 10
                             Button {
                                 text: "Scan Disks"
-                                highlighted: settingsPage.focusIndex === 34
+                                highlighted: settingsPage.focusIndex === 37
                                 onClicked: installManager.scanDisks()
                             }
                             Button {
                                 text: installColumn.selectedDisk
                                        ? ("Install to " + installColumn.selectedDisk)
                                        : "Install"
-                                highlighted: settingsPage.focusIndex === 35
+                                highlighted: settingsPage.focusIndex === 38
                                 enabled: installColumn.selectedDisk !== "" && !installManager.busy
                                 onClicked: confirmDialog.open()
                             }
@@ -827,10 +919,10 @@ Item {
                                 color: installColumn.selectedDisk === modelData.device
                                        ? themeManager.carBlueDim : "transparent"
                                 radius: 4
-                                border.color: settingsPage.focusIndex === 36 ? themeManager.carBlue :
+                                border.color: settingsPage.focusIndex === 39 && settingsPage.diskListFocus === index ? themeManager.carBlue :
                                               (installColumn.selectedDisk === modelData.device
                                                ? themeManager.carBlue : "transparent")
-                                border.width: settingsPage.focusIndex === 36 ? 2 :
+                                border.width: settingsPage.focusIndex === 39 && settingsPage.diskListFocus === index ? 2 :
                                              (installColumn.selectedDisk === modelData.device ? 2 : 0)
 
                                 Text {
@@ -915,13 +1007,13 @@ Item {
                             spacing: 10
                             Button {
                                 text: updateManager && updateManager.busy ? "Checking..." : "Check for Updates"
-                                highlighted: settingsPage.focusIndex === 37
+                                highlighted: settingsPage.focusIndex === 40
                                 enabled: updateManager && !updateManager.busy
                                 onClicked: updateManager.checkForUpdate()
                             }
                             Button {
                                 text: "Download & Install"
-                                highlighted: settingsPage.focusIndex === 38
+                                highlighted: settingsPage.focusIndex === 41
                                 visible: updateManager && updateManager.updateAvailable && !updateManager.busy
                                 onClicked: updateManager.applyNetworkUpdate()
                             }
@@ -1128,12 +1220,12 @@ Item {
     function activateCurrentFocus() {
         var dlg = confirmDialog.visible ? 0 : (resultDialog.visible ? 1 : (updateResultDialog.visible ? 2 : -1))
         if (dlg === 0) {
-            if (focusIndex === 0) confirmDialog.close()
+            if (confirmDialog.dialogFocus === 0) confirmDialog.close()
             else { confirmDialog.close(); installManager.installToDisk(installColumn.selectedDisk) }
             return
         }
         if (dlg === 1) {
-            if (focusIndex === 0) resultDialog.close()
+            if (resultDialog.dialogFocus === 0) resultDialog.close()
             else installManager.rebootNow()
             return
         }
@@ -1155,11 +1247,11 @@ Item {
         } else if (focusIndex === 22 && internalWiFiManager) { internalWiFiManager.scanNetworks()
         } else if (focusIndex === 23 && internalWiFiManager) { internalWiFiManager.connectToCarputerECU()
         } else if (focusIndex === 24 && internalWiFiManager) { internalWiFiManager.disconnectNetwork()
-        } else if (focusIndex === 25 && internalWiFiManager && internalWiFiManager.networks.length > 0) { internalWiFiManager.connectToNetwork(internalWiFiManager.networks[0])
+        } else if (focusIndex === 25 && internalWiFiManager && internalWiFiManager.networks.length > 0) { internalWiFiManager.connectToNetwork(internalWiFiManager.networks[wifiListFocus])
         } else if (focusIndex === 26 && debugManager) { debugManager.runDiagnostics()
         } else if (focusIndex === 27 && dtcManager) { dtcManager.scanDtc()
         } else if (focusIndex === 28 && dtcManager) { dtcManager.scanDtcTestMode()
-        } else if (focusIndex === 29 && dtcManager && dtcManager.dtcCodes.length > 0) { dtcInfoPopup.code = dtcManager.dtcCodes[0]
+        } else if (focusIndex === 29 && dtcManager && dtcManager.dtcCodes.length > 0) { dtcInfoPopup.code = dtcManager.dtcCodes[dtcListFocus]
         } else if (focusIndex === 30 && dtcManager) { dtcManager.clearHistory()
         } else if (focusIndex === 34 && engineProfile) {
             var profiles = engineProfile.profileList
@@ -1170,7 +1262,7 @@ Item {
         } else if (focusIndex === 36 && systemManager) { systemManager.shutdown()
         } else if (focusIndex === 37) { installManager.scanDisks()
         } else if (focusIndex === 38) { confirmDialog.open()
-        } else if (focusIndex === 39 && installManager.disks.length > 0) { installColumn.selectedDisk = installManager.disks[0].device
+        } else if (focusIndex === 39 && installManager.disks.length > 0) { installColumn.selectedDisk = installManager.disks[diskListFocus].device
         } else if (focusIndex === 40) { updateManager.checkForUpdate()
         } else if (focusIndex === 41 && updateManager.updateAvailable) { updateManager.applyNetworkUpdate() }
     }
@@ -1188,13 +1280,24 @@ Item {
         if (focusIndex <= 15) { focusIndex = 0; return true }
         if (focusIndex <= 18) { focusIndex = 7; return true }
         if (focusIndex <= 20) { focusIndex = 16; return true }
-        if (focusIndex <= 25) { focusIndex = 19; return true }
+        if (focusIndex <= 25 && focusIndex !== 25) { focusIndex = 19; return true }
+        if (focusIndex === 25) {
+            if (wifiListFocus > 0) { wifiListFocus--; return true }
+            focusIndex = 19; return true
+        }
         if (focusIndex === 26) { focusIndex = 22; return true }
-        if (focusIndex <= 30) { focusIndex = 26; return true }
-        if (focusIndex === 34) { focusIndex = 27; return true }
+        if (focusIndex === 29) {
+            if (dtcListFocus > 0) { dtcListFocus--; return true }
+            focusIndex = 26; return true
+        }
+        if (focusIndex <= 30 && focusIndex !== 29) { focusIndex = 26; return true }
+        if (focusIndex === 34) { focusIndex = 30; return true }
         if (focusIndex <= 36) { focusIndex = 34; return true }
-        if (focusIndex <= 39) { focusIndex = 35; return true }
-        if (focusIndex <= 41) { focusIndex = 37; return true }
+        if (focusIndex === 39) {
+            if (diskListFocus > 0) { diskListFocus--; return true }
+            focusIndex = 36; return true
+        }
+        if (focusIndex <= 41 && focusIndex !== 39) { focusIndex = 37; return true }
         return true
     }
     function navigateDown() {
@@ -1204,17 +1307,31 @@ Item {
         if (focusIndex <= 20) { focusIndex = 22; return true }
         if (focusIndex <= 22) { focusIndex = 23; return true }
         if (focusIndex === 23) { focusIndex = 24; return true }
-        if (focusIndex === 24) { focusIndex = 25; return true }
-        if (focusIndex === 25) { focusIndex = 26; return true }
+        if (focusIndex === 24) { focusIndex = 25; wifiListFocus = 0; return true }
+        if (focusIndex === 25) {
+            var maxWifi = internalWiFiManager ? Math.max(0, internalWiFiManager.networks.length - 1) : 0
+            if (wifiListFocus < maxWifi) { wifiListFocus++; return true }
+            wifiListFocus = 0; focusIndex = 26; return true
+        }
         if (focusIndex === 26) { focusIndex = 27; return true }
-        if (focusIndex <= 28) { focusIndex++; return true }
-        if (focusIndex === 29) { focusIndex = 30; return true }
+        if (focusIndex === 27) { focusIndex = 28; return true }
+        if (focusIndex === 28) { focusIndex = 29; dtcListFocus = 0; return true }
+        if (focusIndex === 29) {
+            var maxDtc = dtcManager ? Math.max(0, dtcManager.dtcCodes.length - 1) : 0
+            if (dtcListFocus < maxDtc) { dtcListFocus++; return true }
+            dtcListFocus = 0; focusIndex = 30; return true
+        }
         if (focusIndex === 30) { focusIndex = 34; return true }
         if (focusIndex === 34) { focusIndex = 35; return true }
         if (focusIndex === 35) { focusIndex = 36; return true }
         if (focusIndex === 36) { focusIndex = 37; return true }
-        if (focusIndex <= 38) { focusIndex++; return true }
-        if (focusIndex === 39) { focusIndex = 40; return true }
+        if (focusIndex === 37) { focusIndex = 38; return true }
+        if (focusIndex === 38) { focusIndex = 39; diskListFocus = 0; return true }
+        if (focusIndex === 39) {
+            var maxDisk = installManager ? Math.max(0, installManager.disks.length - 1) : 0
+            if (diskListFocus < maxDisk) { diskListFocus++; return true }
+            diskListFocus = 0; focusIndex = 40; return true
+        }
         if (focusIndex === 40) { focusIndex = 41; return true }
         return false
     }
@@ -1242,12 +1359,12 @@ Item {
         }
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             if (dlg === 0) {
-                if (focusIndex === 0) confirmDialog.close()
+                if (confirmDialog.dialogFocus === 0) confirmDialog.close()
                 else { confirmDialog.close(); installManager.installToDisk(installColumn.selectedDisk) }
                 event.accepted = true; return
             }
             if (dlg === 1) {
-                if (focusIndex === 0) resultDialog.close()
+                if (resultDialog.dialogFocus === 0) resultDialog.close()
                 else installManager.rebootNow()
                 event.accepted = true; return
             }
@@ -1269,11 +1386,11 @@ Item {
             } else if (focusIndex === 22 && internalWiFiManager) { internalWiFiManager.scanNetworks()
             } else if (focusIndex === 23 && internalWiFiManager) { internalWiFiManager.connectToCarputerECU()
             } else if (focusIndex === 24 && internalWiFiManager) { internalWiFiManager.disconnectNetwork()
-            } else if (focusIndex === 25 && internalWiFiManager && internalWiFiManager.networks.length > 0) { internalWiFiManager.connectToNetwork(internalWiFiManager.networks[0])
+        } else if (focusIndex === 25 && internalWiFiManager && internalWiFiManager.networks.length > 0) { internalWiFiManager.connectToNetwork(internalWiFiManager.networks[wifiListFocus])
             } else if (focusIndex === 26 && debugManager) { debugManager.runDiagnostics()
             } else if (focusIndex === 27 && dtcManager) { dtcManager.scanDtc()
             } else if (focusIndex === 28 && dtcManager) { dtcManager.scanDtcTestMode()
-            } else if (focusIndex === 29 && dtcManager && dtcManager.dtcCodes.length > 0) { dtcInfoPopup.code = dtcManager.dtcCodes[0]
+        } else if (focusIndex === 29 && dtcManager && dtcManager.dtcCodes.length > 0) { dtcInfoPopup.code = dtcManager.dtcCodes[dtcListFocus]
             } else if (focusIndex === 30 && dtcManager) { dtcManager.clearHistory()
             } else if (focusIndex === 34 && engineProfile) {
                 var profiles = engineProfile.profileList
@@ -1284,7 +1401,7 @@ Item {
             } else if (focusIndex === 36 && systemManager) { systemManager.shutdown()
             } else if (focusIndex === 37) { installManager.scanDisks()
             } else if (focusIndex === 38) { confirmDialog.open()
-            } else if (focusIndex === 39 && installManager.disks.length > 0) { installColumn.selectedDisk = installManager.disks[0].device
+        } else if (focusIndex === 39 && installManager.disks.length > 0) { installColumn.selectedDisk = installManager.disks[diskListFocus].device
             } else if (focusIndex === 40) { updateManager.checkForUpdate()
             } else if (focusIndex === 41 && updateManager.updateAvailable) { updateManager.applyNetworkUpdate() }
             event.accepted = true; return

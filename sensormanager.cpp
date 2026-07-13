@@ -138,6 +138,18 @@ void SensorManager::parseSensorJson(const QByteArray &data)
         if (qAbs(m_o2AFR - v) > 0.05) { m_o2AFR = v; emit o2AFRChanged(); }
     }
 
+    // OBD2 data (from ELM327 via serial bridge, echoed by sensor module)
+    if (d.contains("obd2Rpm"))       { int v = clampVal(d.value("obd2Rpm").toInt(), 0, 10000); if (m_obd2Rpm != v) { m_obd2Rpm = v; emit obd2RpmChanged(); } }
+    if (d.contains("obd2Speed"))     { int v = clampVal(d.value("obd2Speed").toInt(), 0, 300); if (m_obd2Speed != v) { m_obd2Speed = v; emit obd2SpeedChanged(); } }
+    if (d.contains("obd2Load"))      { int v = clampVal(d.value("obd2Load").toInt(), 0, 100); if (m_obd2Load != v) { m_obd2Load = v; emit obd2LoadChanged(); } }
+    if (d.contains("obd2Coolant"))   { int v = clampVal(d.value("obd2Coolant").toInt(), -40, 300); if (m_obd2Coolant != v) { m_obd2Coolant = v; emit obd2CoolantChanged(); } }
+    if (d.contains("obd2Intake"))    { int v = clampVal(d.value("obd2Intake").toInt(), -40, 300); if (m_obd2Intake != v) { m_obd2Intake = v; emit obd2IntakeChanged(); } }
+    if (d.contains("obd2Timing"))    { int v = clampVal(d.value("obd2Timing").toInt(), -64, 64); if (m_obd2Timing != v) { m_obd2Timing = v; emit obd2TimingChanged(); } }
+    if (d.contains("obd2FuelTrimS")) { int v = clampVal(d.value("obd2FuelTrimS").toInt(), -100, 100); if (m_obd2FuelTrimShort != v) { m_obd2FuelTrimShort = v; emit obd2FuelTrimShortChanged(); } }
+    if (d.contains("obd2FuelTrimL")) { int v = clampVal(d.value("obd2FuelTrimL").toInt(), -100, 100); if (m_obd2FuelTrimLong != v) { m_obd2FuelTrimLong = v; emit obd2FuelTrimLongChanged(); } }
+    if (d.contains("obd2FuelPress")) { int v = clampVal(d.value("obd2FuelPress").toInt(), 0, 765); if (m_obd2FuelPressure != v) { m_obd2FuelPressure = v; emit obd2FuelPressureChanged(); } }
+    if (d.contains("obd2DistDtc"))   { int v = clampVal(d.value("obd2DistDtc").toInt(), 0, 65535); if (m_obd2DistanceDtc != v) { m_obd2DistanceDtc = v; emit obd2DistanceDtcChanged(); } }
+
     emit sensorDataReceived(QString::fromUtf8(data));
 }
 

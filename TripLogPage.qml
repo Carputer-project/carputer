@@ -255,10 +255,10 @@ Item {
                                     { label: "AVG SPEED", value: (summary.avgSpeed || 0).toFixed(1), unit: "km/h", color: themeManager.textPrimary },
                                     { label: "MAX SPEED", value: (summary.maxSpeed || 0).toFixed(1), unit: "km/h", color: themeManager.textPrimary },
                                     { label: "AVG RPM", value: Math.round(summary.avgRpm || 0), unit: "rpm", color: themeManager.textPrimary },
-                                    { label: "MAX RPM", value: Math.round(summary.maxRpm || 0), unit: "rpm", color: (summary.maxRpm || 0) > 5500 ? themeManager.warningColor : themeManager.textPrimary },
-                                    { label: "MAX COOLANT", value: (summary.maxCoolant || 0).toFixed(1), unit: "°C", color: (summary.maxCoolant || 0) > 100 ? themeManager.warningColor : themeManager.textPrimary },
-                                    { label: "MAX OIL", value: (summary.maxOil || 0).toFixed(1), unit: "°C", color: (summary.maxOil || 0) > 120 ? themeManager.warningColor : themeManager.textPrimary },
-                                    { label: "MIN BATTERY", value: (summary.minBattery || 0).toFixed(1), unit: "V", color: (summary.minBattery || 0) < 12 ? themeManager.warningColor : themeManager.textPrimary },
+                                    { label: "MAX RPM", value: Math.round(summary.maxRpm || 0), unit: "rpm", color: (summary.maxRpm || 0) > 5500 ? themeManager.warnColor : themeManager.textPrimary },
+                                    { label: "MAX COOLANT", value: (summary.maxCoolant || 0).toFixed(1), unit: "°C", color: (summary.maxCoolant || 0) > 100 ? themeManager.warnColor : themeManager.textPrimary },
+                                    { label: "MAX OIL", value: (summary.maxOil || 0).toFixed(1), unit: "°C", color: (summary.maxOil || 0) > 120 ? themeManager.warnColor : themeManager.textPrimary },
+                                    { label: "MIN BATTERY", value: (summary.minBattery || 0).toFixed(1), unit: "V", color: (summary.minBattery || 0) < 12 ? themeManager.warnColor : themeManager.textPrimary },
                                     { label: "AVG BATTERY", value: (summary.avgBattery || 0).toFixed(1), unit: "V", color: themeManager.textPrimary },
                                     { label: "AVG AFR", value: (summary.avgO2AFR || 0).toFixed(2), unit: "", color: (summary.avgO2AFR || 0) > 0 ? themeManager.carBlue : themeManager.textSecondary }
                                 ]
